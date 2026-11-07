@@ -1,0 +1,23 @@
+item,qty,notes
+Ø12 mm steel rod (guide posts),2,223 mm long
+LM12UU linear bearing,2,press into crosshead
+Ø20 mm steel rod (crease bar),1,160 mm long
+Ø20 mm steel tube (handle),1,388 mm long
+Steel flat bar 20 × 5 mm (links),2,"175 mm long, holes 155 mm apart (dxf/link.dxf)"
+M10 × 90 bolt + nylock nut (pivot),1,
+"M8 × 100 bolt + nylock nut (crank pin, crosshead pin)",2,
+M6 × 40 bolt (tool head mount),4,+ M6 heat-set inserts in the heads
+"M6 × 70 bolt + nylock nut (handle socket, through plates and tube)",2,drill the tube Ø6.5
+"M5 × 20 screw (feet, cradle)",12,wood screws if the base is plywood
+M6 × 20 bolt + Ø20 washer,4,into the tapped ends of both posts (tap M6 × 15 deep)
+M5 × 8 set screw,2,crease bar in its head
+Base plate 280 × 200 × 18 mm,1,plywood or aluminium (dxf/base_plate.dxf)
+Optional: 160 × 160 × 3 mm aluminium face for the platen,1,bond to the printed platen
+Printed: post_foot (stl/post_foot.stl),2,"PETG or PA-CF, see README"
+Printed: cradle (stl/cradle.stl),1,"PETG or PA-CF, see README"
+Printed: crosshead (stl/crosshead.stl),1,"PETG or PA-CF, see README"
+Printed: bridge (stl/bridge.stl),1,"PETG or PA-CF, see README"
+Printed: crank_plate (stl/crank_plate.stl),2,"PETG or PA-CF, see README"
+Printed: handle_socket (stl/handle_socket.stl),1,"PETG or PA-CF, see README"
+Printed: bar_head (stl/bar_head.stl),1,"PETG or PA-CF, see README"
+Printed: platen_head (stl/platen_head.stl),1,"PETG or PA-CF, see README"

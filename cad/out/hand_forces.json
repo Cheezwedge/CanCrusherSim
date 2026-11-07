@@ -1,0 +1,37 @@
+{
+ "platen": [
+  {
+   "thickness_mm": 25,
+   "press_force_N": 965,
+   "crank_deg": 136.1,
+   "link_force_N": 988,
+   "hand_force_N": 88,
+   "ratio": 11.0
+  },
+  {
+   "thickness_mm": 20,
+   "press_force_N": 1301,
+   "crank_deg": 143.6,
+   "link_force_N": 1324,
+   "hand_force_N": 103,
+   "ratio": 12.6
+  },
+  {
+   "thickness_mm": 15,
+   "press_force_N": 2367,
+   "crank_deg": 152.5,
+   "link_force_N": 2392,
+   "hand_force_N": 149,
+   "ratio": 15.9
+  },
+  {
+   "thickness_mm": 12,
+   "press_force_N": 3134,
+   "crank_deg": 159.4,
+   "link_force_N": 3153,
+   "hand_force_N": 152,
+   "ratio": 20.6
+  }
+ ],
+ "crease_bar_peak_N": 172
+}

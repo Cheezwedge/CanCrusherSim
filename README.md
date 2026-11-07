@@ -82,6 +82,21 @@ Short answer, for a 12 oz can lying on its side:
 
 **Platen shape:** the Run panel also offers curved (bulging or dished), roof/valley V, tilted and hinged-clamshell platens. Flat comes out best; see [docs/platen-shapes.md](docs/platen-shapes.md). Shaped platens either reach the already-creased middle first, or leave the stiff end rings thicker. A hinged jaw puts the far ring on twice the lever arm and needs about 3× the force.
 
+## Build one: CAD and 3D-print files
+
+[`cad/`](cad/) has a parametric CadQuery model of a two-stage lever press built from these results:
+- **Stage 1:** the Ø20 crease bar.
+- **Stage 2:** a flat platen.
+
+Included:
+- **STEP assemblies and parts:** open them in SolidWorks; FeatureWorks can recover editable features.
+- **Print-ready STLs.**
+- **DXF cutting profiles.**
+- **A SolidWorks global-variables file.**
+- **A bill of materials and assembly notes.**
+
+About 150 N at the handle flattens a can to 12–15 mm. Edit the dimensions in `cad/can_crusher.py` and rerun it to regenerate everything.
+
 ## The physics model
 
 The model is a 3D explicit-dynamics finite-element shell solver written in plain JavaScript (`src/physics`). It runs in a Web Worker so the page stays responsive.
