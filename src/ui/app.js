@@ -25,7 +25,7 @@ const RANGE_FMT = {
   wall: (v) => `${(+v).toFixed(3)} mm`, imperf: (v) => `${(+v).toFixed(2)} mm`, dent: (v) => (+v === 0 ? 'none' : `${(+v).toFixed(2)} mm`),
   dentH: (v) => `${v}% up`, tilt: (v) => `${v}°`, plateW: (v) => `${v} mm`, plateL: (v) => `${v} mm`, barD: (v) => `Ø${v} mm`,
   barL: (v) => `${v} mm`, punchD: (v) => `Ø${v} mm`, edgeR: (v) => `${(+v).toFixed(1)} mm`, yaw: (v) => `${v}°`,
-  plateT: (v) => `${v} mm`, punchH: (v) => `${v} mm`,
+  plateT: (v) => `${v} mm`, punchH: (v) => `${v} mm`, platenGap: (v) => `${v} mm`,
   offX: (v) => `${v} mm`, offZ: (v) => `${v} mm`, mu: (v) => `μ ${(+v).toFixed(2)}`, gap: (v) => `${v} mm`,
   ratio: (v) => `${(+v).toFixed(1)} : 1`, handF: (v) => `${v} N`,
 };
@@ -62,6 +62,9 @@ function initControls() {
   $('dentFace').addEventListener('change', (e) => { ui.dentFace = e.target.value; setupChanged(); });
   $('seed').value = ui.seed;
   $('seed').addEventListener('change', (e) => { ui.seed = Math.max(1, Math.round(+e.target.value || 1)); e.target.value = ui.seed; setupChanged(); });
+  $('platen').checked = !!ui.platen;
+  $('platenOpts').hidden = !ui.platen;
+  $('platen').addEventListener('change', (e) => { ui.platen = e.target.checked; $('platenOpts').hidden = !ui.platen; setupChanged(); });
   $('rod').value = String(ui.rod);
   $('rod').addEventListener('change', (e) => { ui.rod = +e.target.value; setupChanged(); });
   $('res').value = ui.res;
@@ -143,6 +146,7 @@ export function describeParams(p) {
   if (p.dent && p.dent.depth > 0) extras.push(`${p.dent.depth} mm dent`);
   if (t.yawDeg) extras.push(`rotated ${t.yawDeg}°`);
   if (t.ramDiameter === 0) extras.push('no centre rod');
+  if (p.secondPress && p.secondPress.enabled) extras.push(`then platen to ${Math.round(p.secondPress.finalGap * 1000)} mm`);
   if (t.offsetX || t.offsetZ) extras.push('off-centre');
   return `${dir}, ${tool}${extras.length ? ' · ' + extras.join(', ') : ''}`;
 }
@@ -256,9 +260,11 @@ function onSimMessage(m) {
     case 'frame': {
       appendHist(m.hist);
       lastLive = m.live;
-      if (view) { view.updateCan(m.positions, m.strain); view.setToolY(m.live.toolY); view.setAux(m.live.aux); }
-      if (m.live.phase === 'dent-in' || m.live.phase === 'dent-out') setStatus('running', `Pressing the dent… ${m.live.aux ? Math.round(m.live.aux.dentForce) + ' N' : ''}`);
-      else if ($('status').textContent.startsWith('Pressing')) setStatus('running', 'Crushing…');
+      if (view) {
+        if (m.tool) view.setTool(m.tool, { x: m.tool.x, y: m.tool.y, z: m.tool.z });
+        view.updateCan(m.positions, m.strain); view.setToolY(m.live.toolY); view.setAux(m.live.aux);
+      }
+      setStatus('running', phaseText(m.live));
       renderHud(); renderTiles(); updateChart();
       if (!pendingAck) {
         pendingAck = true;
@@ -267,11 +273,14 @@ function onSimMessage(m) {
       break;
     }
     case 'done': {
-      current.d = Array.from(m.history.d); current.F = Array.from(m.history.F);
+      current.d = Array.from(m.history.d); current.F = Array.from(m.history.F); current.s = Array.from(m.history.s || []);
       current.summary = m.summary;
       current.state = 'done';
       lastLive = m.live;
-      if (view && m.positions) { view.updateCan(m.positions, m.strain); view.liftTool(m.live.toolY, 70); view.setAux(null); }
+      if (view && m.positions) {
+        if (m.tool && m.live.stages > 1) view.setTool(m.tool, { x: m.tool.x, y: m.tool.y, z: m.tool.z });
+        view.updateCan(m.positions, m.strain); view.liftTool(m.live.toolY, 70); view.setAux(null);
+      }
       const secs = (performance.now() - current.t0) / 1000;
       const reason = m.summary.stopReason === 'force limit' ? ' (stopped at the 9 kN force limit)' : '';
       setStatus('done', `Done in ${secs.toFixed(0)} s${reason}`);
@@ -290,7 +299,16 @@ function onSimMessage(m) {
 }
 
 function appendHist(h) {
-  for (let i = 0; i < h.d.length; i++) { current.d.push(h.d[i]); current.F.push(h.F[i]); }
+  current.s = current.s || [];
+  for (let i = 0; i < h.d.length; i++) { current.d.push(h.d[i]); current.F.push(h.F[i]); current.s.push(h.s ? h.s[i] : 0); }
+}
+
+function phaseText(L) {
+  if (L.phase === 'dent-in' || L.phase === 'dent-out') return `Pressing the dent… ${L.aux ? Math.round(L.aux.dentForce) + ' N' : ''}`;
+  const two = L.stages > 1;
+  const who = two ? (L.stage === 0 ? 'Press 1' : 'Platen') : '';
+  if (L.phase === 'release') return two ? `${who}: retracting…` : 'Backing off…';
+  return two ? `${who}: crushing…` : 'Crushing…';
 }
 
 function setStatus(state, text) {
@@ -355,7 +373,15 @@ function currentStats() {
     volumeReduction: s ? s.volumeReduction : null,
     springBack: s ? s.springBack * 1000 : null,
     done: !!s,
+    stages: s ? s.stages : null,
   };
+}
+
+function stagePeak(k) {
+  if (!current || !current.s) return null;
+  let mx = null;
+  for (let i = 0; i < current.F.length; i++) if (current.s[i] === k && (mx === null || current.F[i] > mx)) mx = current.F[i];
+  return mx;
 }
 
 function renderTiles() {
@@ -376,6 +402,23 @@ function renderTiles() {
   if (st.finalHeight !== null && st.initialHeight) set('tHeight', `${st.finalHeight.toFixed(0)}<small>mm</small>`, `from ${st.initialHeight.toFixed(0)} mm tall`);
   if (st.volumeReduction !== null) set('tVol', `${(st.volumeReduction * 100).toFixed(0)}<small>%</small>`, st.springBack !== null ? `spring-back ${st.springBack.toFixed(1)} mm` : '&nbsp;');
   else set('tVol', '—', 'shown when finished');
+  // two-press runs: retraction of press 1 and the platen
+  const two = current && current.params && current.params.secondPress && current.params.secondPress.enabled;
+  $('tileRetract').hidden = !two; $('tilePlaten').hidden = !two;
+  if (two) {
+    const p1 = st.stages ? st.stages[0] : null;
+    if (p1) {
+      const stuck = p1.snagged || p1.pullForce > 20;
+      set('tPull', fmtForce(p1.pullForce), stuck ? (p1.snagged ? 'snags: metal folded over the crusher' : 'drags metal on the way out') : 'retracts cleanly');
+      $('tPull').className = 'v ' + (stuck ? 'bad' : 'ok');
+    } else { set('tPull', '—', 'measured when press 1 backs off'); $('tPull').className = 'v'; }
+    const p1peak = stagePeak(0), p2peak = stagePeak(1);
+    if (p1peak !== null) set('tPeak', fmtForce(Math.max(p1peak, 0)), `press 1 only · ${alt(p1peak)}`);
+    if (p2peak !== null) {
+      const p2 = st.stages ? st.stages[1] : null;
+      set('tPlaten', fmtForce(p2peak), p2 && p2.heightAfter ? `can ends up ${(p2.heightAfter * 1000).toFixed(0)} mm thick` : alt(p2peak));
+    } else set('tPlaten', '—', 'after press 1 retracts');
+  }
 }
 
 function leverFor(peak, travel) {
@@ -431,7 +474,13 @@ function recordFrom(name, params, d, F, summary, extra = {}) {
     id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     name, res: params.resolution, params,
     d: ds.d, F: ds.F,
-    stats: { ...a, finalHeight: summary.finalHeight * 1000, initialHeight: summary.initialHeight * 1000, volumeReduction: summary.volumeReduction },
+    stats: {
+      ...a, finalHeight: summary.finalHeight * 1000, initialHeight: summary.initialHeight * 1000, volumeReduction: summary.volumeReduction,
+      ...(summary.stages && summary.stages.length > 1 ? {
+        press1Peak: summary.stages[0].peakForce, pullForce: summary.stages[0].pullForce, snagged: summary.stages[0].snagged,
+        platenPeak: summary.stages[1].peakForce,
+      } : {}),
+    },
     ...extra,
   };
 }
@@ -454,7 +503,7 @@ function renderCompare() {
     const sw = r.slot ? `<span class="sw" style="background:var(--series-${r.slot})"></span> ` : '';
     const sub = r.pending
       ? `<span class="sub">running… ${Math.round((r.progress || 0) * 100)}%</span>`
-      : `<span class="sub">${r.reference ? 'reference · ' : ''}${r.res} mesh${r.stats && r.stats.finalHeight ? ` · ends ${Math.round(r.stats.finalHeight)} mm tall` : ''}</span>`;
+      : `<span class="sub">${r.reference ? 'reference · ' : ''}${r.res} mesh${r.stats && r.stats.finalHeight ? ` · ends ${Math.round(r.stats.finalHeight)} mm tall` : ''}${r.stats && r.stats.press1Peak !== undefined ? ` · press 1 ${Math.round(r.stats.press1Peak)} N, pull-out ${Math.round(r.stats.pullForce)} N${r.stats.snagged || r.stats.pullForce > 20 ? ' (snags)' : ' (clean)'}, platen ${Math.round(r.stats.platenPeak)} N` : ''}</span>`;
     if (!r.stats) return `<tr><td class="name">${sw}${escapeHtml(r.name)}${sub}</td><td colspan="7"></td></tr>`;
     const s = r.stats;
     const chips = [];

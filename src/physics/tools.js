@@ -153,6 +153,11 @@ export class PlateTool extends ToolBase {
     this._toWorldN(n);
     return d;
   }
+  /** True if a point lies on top of the plate (above its top face, inside its outline). */
+  isOverTop(x, y, z) {
+    this._local(x, y, z, _l);
+    return _l[1] > 2 * this.hy && _l[1] < 2 * this.hy + 0.03 && Math.abs(_l[0]) < this.hx && Math.abs(_l[2]) < this.hz;
+  }
   describe() {
     return { kind: 'plate', width: this.hx * 2, length: this.hz * 2, thickness: this.hy * 2, edgeRadius: this.r, yaw: this.yaw, ramDiameter: this.ramR * 2 };
   }
@@ -182,7 +187,11 @@ export class BarTool extends ToolBase {
     this._toWorldN(n);
     return d;
   }
-  describe() { return { kind: 'bar', diameter: this.rad * 2, length: (this.hl + this.rad) * 2, yaw: this.yaw }; }
+  isOverTop(x, y, z) {
+    this._local(x, y, z, _l);
+    return _l[1] > this.rad && _l[1] < 2 * this.rad + 0.03 && Math.abs(_l[0]) < this.hl + this.rad && Math.abs(_l[2]) < 0.8 * this.rad;
+  }
+  describe() { return { kind: 'bar', diameter: this.rad * 2, length: (this.hl + this.rad) * 2, yaw: this.yaw, ramDiameter: this.ramR * 2 }; }
 }
 
 /**
@@ -216,6 +225,10 @@ export class PunchTool extends ToolBase {
     d = this._ram(lx, _l[1], lz, d, n);
     this._toWorldN(n);
     return d;
+  }
+  isOverTop(x, y, z) {
+    this._local(x, y, z, _l);
+    return _l[1] > 2 * this.hh && _l[1] < 2 * this.hh + 0.03 && Math.hypot(_l[0], _l[2]) < this.R;
   }
   describe() { return { kind: 'punch', diameter: this.R * 2, height: this.hh * 2, edgeRadius: this.r, ramDiameter: this.ramR * 2 }; }
 }

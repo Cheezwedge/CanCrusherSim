@@ -13,6 +13,7 @@ export const UI_DEFAULTS = {
   canPreset: 'std355', wall: 0.097, imperf: 0.08, dent: 0, dentH: 50, dentFace: 'side', seed: 7,
   tilt: 0, tool: 'plate', plateW: 100, plateL: 100, plateT: 20, barD: 20, barL: 120, punchD: 40, punchH: 30, edgeR: 3,
   yaw: 0, offX: 0, offZ: 0, mu: 0.25, gap: 25, res: 'standard', rod: 18,
+  platen: false, platenGap: 6,
 };
 
 /** Convert UI settings (mm, degrees) into physics parameters (SI units). */
@@ -33,12 +34,13 @@ export function uiToParams(u) {
     seed: u.seed,
     dent: { depth: u.dent, heightFrac: u.dentH / 100, azimuthDeg: dentAz, width: 5 },
     finalGap: u.gap / 1000,
+    secondPress: { enabled: !!u.platen, size: 0.16, finalGap: (u.platenGap ?? 6) / 1000 },
   };
 }
 
 /** Physics parameters for a strategy applied on top of base UI settings. */
 export function strategyParams(s, base = {}) {
-  const u = { ...UI_DEFAULTS, ...base, ...s.over, yaw: 0, offX: 0, offZ: 0 };
+  const u = { ...UI_DEFAULTS, ...base, ...s.over, yaw: 0, offX: 0, offZ: 0, platen: false };
   if (base.resolution) u.res = base.resolution;
   return uiToParams(u);
 }

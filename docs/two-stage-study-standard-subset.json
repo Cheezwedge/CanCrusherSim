@@ -1,0 +1,177 @@
+[
+ {
+  "key": "plate-full",
+  "name": "Full flat plate (single press, reference)",
+  "single": true,
+  "res": "standard",
+  "press1": {
+   "start": 1800.2249235765173,
+   "peak": 8495.46029090494,
+   "work": 119.10286700765577,
+   "pullForce": 0,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 9.147431437931383
+  },
+  "press2": null,
+  "flattenForce": {
+   "10": 5715.385151446659,
+   "15": 3595.380741049134,
+   "20": 2441.0176114775563
+  },
+  "finalHeight": 9.147431437931383,
+  "volumeReduction": 0.8823176547170017,
+  "totalWork": 119.10286700765577,
+  "maxForce": 8495.46029090494
+ },
+ {
+  "key": "blade3-across",
+  "name": "3 mm plate, 50 mm wide, across the middle, no rod",
+  "single": false,
+  "res": "standard",
+  "press1": {
+   "start": 78.74001604581217,
+   "peak": 371.5878556831281,
+   "work": 12.824643756682224,
+   "pullForce": 465.5805542632448,
+   "snagged": false,
+   "overTop": 657,
+   "heightAfter": 37.71483375480189
+  },
+  "press2": {
+   "peak": 8497.772743039272,
+   "work": 51.88454206527446,
+   "heightAfter": 6.525741974360734,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 4516.210702845582,
+   "15": 1687.5946522285658,
+   "20": 896.7515799259453
+  },
+  "finalHeight": 6.525741974360734,
+  "volumeReduction": 0.9290126725769339,
+  "totalWork": 64.7091858219569,
+  "maxForce": 8497.772743039272
+ },
+ {
+  "key": "block40-across-g20",
+  "name": "40 mm block, 50 mm wide, across, stop at 20 mm",
+  "single": false,
+  "res": "standard",
+  "press1": {
+   "start": 83.96183469358347,
+   "peak": 747.9846776164254,
+   "work": 10.477304924947905,
+   "pullForce": 6.648370341137434,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 53.173908482044894
+  },
+  "press2": {
+   "peak": 8189.839553644552,
+   "work": 57.08627535606759,
+   "heightAfter": 6.537954029272101,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 4280.225887854935,
+   "15": 1747.267840326558,
+   "20": 795.8733044651112
+  },
+  "finalHeight": 6.537954029272101,
+  "volumeReduction": 0.9262144839818612,
+  "totalWork": 67.5635802810156,
+  "maxForce": 8189.839553644552
+ },
+ {
+  "key": "blade20x30-across",
+  "name": "20 mm wide × 30 mm tall blade across the middle",
+  "single": false,
+  "res": "standard",
+  "press1": {
+   "start": 73.6720749975092,
+   "peak": 224.08124720167035,
+   "work": 6.87677179442338,
+   "pullForce": 1.705758167178049,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 55.822389442556236
+  },
+  "press2": {
+   "peak": 8523.550706164504,
+   "work": 71.62105579606754,
+   "heightAfter": 7.206952509804121,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 4075.4231301571854,
+   "15": 2318.8553565386505,
+   "20": 1514.856009828786
+  },
+  "finalHeight": 7.206952509804121,
+  "volumeReduction": 0.9218451717530893,
+  "totalWork": 78.49782759049128,
+  "maxForce": 8523.550706164504
+ },
+ {
+  "key": "bar20-across",
+  "name": "Ø20 round bar across the middle",
+  "single": false,
+  "res": "standard",
+  "press1": {
+   "start": 95.77172919336114,
+   "peak": 171.8827184635676,
+   "work": 5.398535366571558,
+   "pullForce": 0,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 56.0439714347231
+  },
+  "press2": {
+   "peak": 8492.302621694185,
+   "work": 71.85568804628339,
+   "heightAfter": 7.304190838112745,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 4505.683219215529,
+   "15": 2392.2319520465453,
+   "20": 1321.9894600537884
+  },
+  "finalHeight": 7.304190838112745,
+  "volumeReduction": 0.9172926231573909,
+  "totalWork": 77.25422341285496,
+  "maxForce": 8492.302621694185
+ },
+ {
+  "key": "bar10-across",
+  "name": "Ø10 round bar across the middle",
+  "single": false,
+  "res": "standard",
+  "press1": {
+   "start": 56.981042422304384,
+   "peak": 149.86415129797467,
+   "work": 4.7635654648818475,
+   "pullForce": 0,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 56.801757277692104
+  },
+  "press2": {
+   "peak": 8793.642751665859,
+   "work": 77.27902468280568,
+   "heightAfter": 7.602568397825205,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 4509.3269171339925,
+   "15": 2697.060232745224,
+   "20": 1245.3814491281728
+  },
+  "finalHeight": 7.602568397825205,
+  "volumeReduction": 0.918786790230504,
+  "totalWork": 82.04259014768758,
+  "maxForce": 8793.642751665859
+ }
+]

@@ -1,0 +1,92 @@
+[
+ {
+  "key": "bar10-across",
+  "name": "Ø10 round bar across the middle",
+  "single": false,
+  "res": "coarse",
+  "press1": {
+   "start": 49.715026342790935,
+   "peak": 187.03577190059386,
+   "work": 5.723381811319474,
+   "pullForce": 0.6732635869613531,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 56.084305593778254
+  },
+  "press2": {
+   "peak": 8353.099152213725,
+   "work": 82.22853476871025,
+   "heightAfter": 8.798738763664613,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 5907.951853856662,
+   "15": 2439.9266556375205,
+   "20": 1901.2373351023164
+  },
+  "finalHeight": 8.798738763664613,
+  "volumeReduction": 0.9130836023139414,
+  "totalWork": 87.95191658002999,
+  "maxForce": 8353.099152213725
+ },
+ {
+  "key": "bar30-across",
+  "name": "Ø30 round bar across the middle",
+  "single": false,
+  "res": "coarse",
+  "press1": {
+   "start": 50.99241157270689,
+   "peak": 275.57537929679023,
+   "work": 7.541493747015276,
+   "pullForce": 50.63708748299324,
+   "snagged": true,
+   "overTop": 0,
+   "heightAfter": 54.63835826131461
+  },
+  "press2": {
+   "peak": 7905.184250434645,
+   "work": 73.80654913078841,
+   "heightAfter": 8.236442434918278,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 5061.663721451529,
+   "15": 2951.802446281662,
+   "20": 1791.2879794186194
+  },
+  "finalHeight": 8.236442434918278,
+  "volumeReduction": 0.9115214763868511,
+  "totalWork": 81.34804287780364,
+  "maxForce": 7905.184250434645
+ },
+ {
+  "key": "bar20-across-g20",
+  "name": "Ø20 round bar across the middle, stop at 20 mm",
+  "single": false,
+  "res": "coarse",
+  "press1": {
+   "start": 49.252520619011335,
+   "peak": 183.55535677133986,
+   "work": 4.489531299795751,
+   "pullForce": 0,
+   "snagged": false,
+   "overTop": 0,
+   "heightAfter": 59.5350677734944
+  },
+  "press2": {
+   "peak": 8270.554704558077,
+   "work": 93.24497545883608,
+   "heightAfter": 8.445860729981487,
+   "stopReason": "force limit"
+  },
+  "flattenForce": {
+   "10": 5957.324230893283,
+   "15": 2802.8412462691917,
+   "20": 2328.3272341776897
+  },
+  "finalHeight": 8.445860729981487,
+  "volumeReduction": 0.9073944436701171,
+  "totalWork": 97.734506758632,
+  "maxForce": 8270.554704558077
+ }
+]

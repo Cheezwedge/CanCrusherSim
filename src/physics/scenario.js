@@ -1,6 +1,8 @@
 // Crush scenario: places a can (any tilt from upright to lying on its side) on
-// a rigid anvil, drives a rigid crusher down at a prescribed speed, and records
-// the force-displacement response.
+// a rigid anvil, drives one or more rigid crushers down in sequence at a
+// prescribed speed, and records the force-displacement response. Between
+// presses the crusher retracts while the can is held on the bed, which measures
+// whether metal folded over the crusher snags it (pull-out force).
 
 import { buildCanMesh, meshVolume, CAN_PRESETS } from './canGeometry.js';
 import { ShellSolver } from './solver.js';
@@ -45,6 +47,13 @@ export const DEFAULT_PARAMS = {
   dtSafety: 0.8,
   localDamping: 0.1,
   release: true,         // back the crusher off at the end to measure spring-back
+  // Optional sequence of presses. Each entry: { tool, finalGap, label }.
+  // When omitted a single press uses `tool` and `finalGap`.
+  presses: null,
+  // Convenience: append a large flat platen that flattens what press 1 left.
+  secondPress: { enabled: false, size: 0.16, finalGap: 0.006 },
+  retractMax: 0.020,     // how far a crusher may be pulled back while still snagged (m)
+  retractSpeed: 0.15,
   selfContact: true,
   yieldScale: 1,
 };
@@ -131,15 +140,38 @@ export class CrushScenario {
     const s = this.solver;
     this.anvil = s.addTool(new PlaneTool({ friction: P.friction }));
     this.anvil.py = 0;
-    const tool = (this.tool = s.addTool(makeTool({ ...P.tool, friction: P.friction })));
-    tool.px = P.tool.offsetX || 0;
-    tool.pz = P.tool.offsetZ || 0;
-    // start just clear of the highest point under the tool
-    tool.py = maxY + 0.0003;
-    this.toolStartY = tool.py;
-    // the lowest point of the tool sits at py (all tools are referenced at their bottom)
-    this.targetY = P.finalGap;
-    this.stroke = Math.max(0, this.toolStartY - this.targetY);
+    // ---- presses ----------------------------------------------------------
+    const specs = Array.isArray(P.presses) && P.presses.length
+      ? P.presses.map((ps) => ({ ...ps }))
+      : [{ tool: P.tool, finalGap: P.finalGap, label: 'crusher' }];
+    if (P.secondPress && P.secondPress.enabled) {
+      const sz = P.secondPress.size ?? 0.16;
+      specs.push({
+        tool: { type: 'plate', width: sz, length: sz, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0.018 },
+        finalGap: P.secondPress.finalGap ?? 0.006,
+        label: 'platen',
+      });
+    }
+    this.presses = specs.map((ps, k) => {
+      const t = s.addTool(makeTool({ ...ps.tool, friction: P.friction }));
+      t.px = ps.tool.offsetX || 0;
+      t.pz = ps.tool.offsetZ || 0;
+      t.enabled = k === 0;
+      t.py = k === 0 ? maxY + 0.0003 : 1; // later presses wait parked far above
+      return {
+        spec: ps, tool: t, label: ps.label || (k === 0 ? 'crusher' : `press ${k + 1}`),
+        targetY: ps.finalGap, startY: t.py, stroke: 0, travel: 0, work: 0,
+        startTravel: 0, firstSample: 0, peak: { F: 0, d: 0 },
+        springBack: null, pullForce: 0, snagged: false, overTop: 0, heightAfter: null, stopReason: '',
+      };
+    });
+    this.stage = 0;
+    this.tool = this.presses[0].tool;
+    this.presses[0].stroke = Math.max(0, this.presses[0].startY - this.presses[0].targetY);
+    // kept for compatibility with single-press callers
+    this.toolStartY = this.tool.py;
+    this.targetY = this.presses[0].targetY;
+    this.stroke = this.presses[0].stroke;
 
     // pre-dent tools (ball indenter + backstop), active only before the crush
     if (this.dentPlan) {
@@ -181,8 +213,10 @@ export class CrushScenario {
     this.buckled = false; this.fRunMax = 0;
     this.phase = this.dentPlan ? 'dent-in' : 'crush';
     this.done = false;
-    this.travel = 0;
-    this.history = { d: [], F: [], W: [], h: [], ke: [] };
+    this.travel = 0;        // cumulative crusher travel over all presses
+    this.pressTravel = 0;   // travel of the current press
+    this.history = { d: [], F: [], W: [], h: [], ke: [], stage: [] };
+    this.fixed = null;
     this._acc = { F: 0, n: 0 };
     this.sampleEvery = 0.0001; // record every 0.1 mm of travel
     this._nextSample = 0;
@@ -199,7 +233,7 @@ export class CrushScenario {
 
   _toolVelocity() {
     if (this.phase === 'crush') return -this.vCur;
-    if (this.phase === 'release') return Math.max(this.vmin, 0.05);
+    if (this.phase === 'release') return this.params.retractSpeed;
     return 0;
   }
 
@@ -207,17 +241,17 @@ export class CrushScenario {
     const P = this.params, dt = this.solver.dt;
     this.Ff += (F - this.Ff) * 0.05;
     this._kSteps++;
-    const dd = this.travel - this._kD;
+    const dd = this.pressTravel - this._kD;
     if (dd >= 0.01e-3 && this._kSteps >= 25) {
       const k = (this.Ff - this._kF) / dd;
       this.kEst = Math.max(k, this.kEst * 0.6, 0);
-      this._kD = this.travel; this._kF = this.Ff; this._kSteps = 0;
+      this._kD = this.pressTravel; this._kF = this.Ff; this._kSteps = 0;
     }
     // Until the can first gives way (or 6 mm of travel) run slowly: the elastic
     // pre-buckling phase is the stiffest part and sets the peak force.
     if (!this.buckled) {
       if (this.Ff > this.fRunMax) this.fRunMax = this.Ff;
-      if ((this.fRunMax > 30 && this.Ff < 0.85 * this.fRunMax) || this.travel > 0.004) this.buckled = true;
+      if ((this.fRunMax > 30 && this.Ff < 0.85 * this.fRunMax) || this.pressTravel > 0.004) this.buckled = true;
     }
     const ref = Math.abs(this.Ff) + 40;
     const kk = Math.sqrt(Math.max(this.kEst, 1) * this.mEff);
@@ -235,9 +269,11 @@ export class CrushScenario {
   /** Advance up to n solver steps. Returns true when finished. */
   advance(n) {
     if (this.done) return true;
-    const s = this.solver, tool = this.tool, P = this.params;
+    const s = this.solver, P = this.params;
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
     for (let k = 0; k < n; k++) {
+      const tool = this.tool;
+      const pr = this.presses[this.stage];
       tool.vy = this._toolVelocity();
       if (this.phase === 'dent-in' || this.phase === 'dent-out') { this._dentStep(); continue; }
       s.step();
@@ -246,7 +282,10 @@ export class CrushScenario {
         this._govern(F);
         const dd = -tool.vy * s.dt;
         this.travel += dd;
+        this.pressTravel += dd;
         this.work += F * dd;
+        pr.travel += dd;
+        pr.work += F * dd;
         this._acc.F += F; this._acc.n++;
         if (this.travel >= this._nextSample) {
           const Fa = this._acc.F / Math.max(1, this._acc.n);
@@ -256,18 +295,28 @@ export class CrushScenario {
           this.history.W.push(this.work);
           this.history.h.push(tool.py);
           this.history.ke.push(s.kinetic);
+          this.history.stage.push(this.stage);
           this._nextSample += this.sampleEvery;
           if (Fa > this.peak.F) { this.peak.F = Fa; this.peak.d = this.travel; }
-          if (Fa > P.maxForce) { this.stopReason = 'force limit'; this._endCrush(); }
+          if (Fa > pr.peak.F) { pr.peak.F = Fa; pr.peak.d = this.pressTravel; }
+          if (Fa > P.maxForce) { pr.stopReason = 'force limit'; this.stopReason = 'force limit'; this._endCrush(); }
         }
-        if (tool.py <= this.targetY) { this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
+        if (tool.py <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
         if (!Number.isFinite(s.x[0])) { this.stopReason = 'numerical failure'; this.done = true; return true; }
       } else if (this.phase === 'release') {
-        if (tool.contactCount === 0 || tool.py - this.releaseStart > 0.010) {
-          this.springBack = tool.py - this.releaseStart;
-          this.phase = 'finished';
-          this.done = true;
-          break;
+        const risen = tool.py - this.releaseStart;
+        // pull-out force: the can (held on the bed) dragging the crusher down
+        this._pullAcc = this._pullAcc * 0.9 + Math.max(0, -F) * 0.1;
+        if (this._pullAcc > pr.pullForce) pr.pullForce = this._pullAcc;
+        if (tool.contactCount === 0) {
+          if (pr.springBack === null) pr.springBack = risen;
+          this._freeSteps++;
+        } else this._freeSteps = 0;
+        if ((this._freeSteps > 40 && risen > 0.001) || risen > P.retractMax) {
+          pr.snagged = tool.contactCount > 0;
+          if (pr.springBack === null) pr.springBack = risen;
+          this._afterRelease();
+          if (this.done) break;
         }
       }
       if (this.done) break;
@@ -309,9 +358,57 @@ export class CrushScenario {
 
   _endCrush() {
     if (this.phase !== 'crush') return;
-    if (this.params.release) {
-      this.phase = 'release';
-      this.releaseStart = this.tool.py;
+    const pr = this.presses[this.stage];
+    if (!this.params.release && this.stage === this.presses.length - 1) {
+      this.phase = 'finished';
+      this.done = true;
+      return;
+    }
+    this.phase = 'release';
+    this.releaseStart = this.tool.py;
+    this._pullAcc = 0;
+    this._freeSteps = 0;
+    pr.overTop = this._countOverTop(this.tool);
+    // hold the can on the bed (like a stripper) while the crusher backs off
+    const s = this.solver, x = s.x;
+    if (!s.fixed) s.fixed = new Uint8Array(s.N);
+    for (let i = 0; i < s.N; i++) s.fixed[i] = x[3 * i + 1] < 0.0015 ? 1 : 0;
+  }
+
+  /** Nodes of the can lying on top of the crusher (metal folded over it). */
+  _countOverTop(tool) {
+    if (typeof tool.isOverTop !== 'function') return 0;
+    const x = this.solver.x;
+    let c = 0;
+    for (let i = 0; i < this.solver.N; i++) if (tool.isOverTop(x[3 * i], x[3 * i + 1], x[3 * i + 2])) c++;
+    return c;
+  }
+
+  _afterRelease() {
+    const s = this.solver;
+    const pr = this.presses[this.stage];
+    if (s.fixed) s.fixed.fill(0);
+    pr.heightAfter = this.currentHeight();
+    this.springBack = pr.springBack;
+    this.tool.vy = 0;
+    if (this.stage + 1 < this.presses.length) {
+      this.tool.enabled = false;
+      this.tool.py = 1;
+      this.stage++;
+      const nx = this.presses[this.stage];
+      this.tool = nx.tool;
+      nx.tool.enabled = true;
+      nx.tool.py = this.currentHeight() + 0.0003;
+      nx.startY = nx.tool.py;
+      nx.stroke = Math.max(0, nx.startY - nx.targetY);
+      nx.startTravel = this.travel;
+      nx.firstSample = this.history.d.length;
+      // fresh governor for the new press
+      this.pressTravel = 0;
+      this.vCur = this.vmin;
+      this.Ff = 0; this._kD = 0; this._kF = 0; this._kSteps = 0; this.kEst = 0;
+      this.buckled = false; this.fRunMax = 0;
+      this.phase = 'crush';
     } else {
       this.phase = 'finished';
       this.done = true;
@@ -324,7 +421,16 @@ export class CrushScenario {
   }
 
   progress() {
-    return this.stroke > 0 ? Math.min(1, this.travel / this.stroke) : 1;
+    const n = this.presses.length;
+    const pr = this.presses[this.stage];
+    const f = pr.stroke > 0 ? Math.min(1, this.pressTravel / pr.stroke) : 1;
+    return this.done ? 1 : (this.stage + f) / n;
+  }
+
+  /** Description of the crusher currently in use (for display). */
+  activeTool() {
+    const t = this.tool;
+    return { ...t.describe(), x: t.px, y: t.py, z: t.pz, stage: this.stage, label: this.presses[this.stage].label };
   }
 
   /** Bounding height of the can now (m). */
@@ -338,26 +444,26 @@ export class CrushScenario {
   summary() {
     const h = this.history;
     const s = this.solver;
-    const n = h.F.length;
-    // smoothed force for robust peak detection (0.5 mm window)
-    const sm = smoothSeries(h.F, 5);
-    // force at which the can first gives way: first local maximum followed by a
-    // drop of at least 15 %
-    let initial = null;
-    for (let i = 1; i < n; i++) {
-      if (sm[i] < sm[i - 1]) continue;
-      let j = i + 1, mn = sm[i];
-      while (j < n && sm[j] <= sm[i]) { mn = Math.min(mn, sm[j]); if (mn < 0.85 * sm[i]) break; j++; }
-      if (j < n && mn < 0.85 * sm[i] && sm[i] > 20) { initial = { F: sm[i], d: h.d[i] }; break; }
-    }
-    let pk = 0;
-    for (let i = 0; i < n; i++) if (sm[i] > sm[pk]) pk = i;
+    const a0 = analyseCurve(h.d, h.F, 0, firstIndexOfStage(h.stage, 1));
+    const overall = analyseCurve(h.d, h.F, 0, h.d.length);
     const vol = meshVolume(s.x, s.tris);
+    const stages = this.presses.map((pr, k) => {
+      const i0 = firstIndexOfStage(h.stage, k), i1 = firstIndexOfStage(h.stage, k + 1);
+      const a = analyseCurve(h.d, h.F, i0, i1, pr.startTravel);
+      return {
+        label: pr.label, tool: pr.tool.describe(), finalGap: pr.targetY,
+        initialPeak: a.initial ? a.initial.F : null, initialPeakAt: a.initial ? a.initial.d : null,
+        peakForce: a.peak.F, peakAt: a.peak.d,
+        work: pr.work, travel: pr.travel, meanForce: pr.travel > 0 ? pr.work / pr.travel : 0,
+        springBack: pr.springBack ?? 0, pullForce: pr.pullForce, snagged: pr.snagged, overTop: pr.overTop,
+        heightAfter: pr.heightAfter, stopReason: pr.stopReason,
+      };
+    });
     return {
-      peakForce: n ? sm[pk] : 0,
-      peakAt: n ? h.d[pk] : 0,
-      initialPeak: initial ? initial.F : null,
-      initialPeakAt: initial ? initial.d : null,
+      peakForce: overall.peak.F,
+      peakAt: overall.peak.d,
+      initialPeak: a0.initial ? a0.initial.F : null,
+      initialPeakAt: a0.initial ? a0.initial.d : null,
       meanForce: this.travel > 0 ? this.work / this.travel : 0,
       work: this.work,
       travel: this.travel,
@@ -366,7 +472,8 @@ export class CrushScenario {
       volume0: this.v0,
       volume: vol,
       volumeReduction: 1 - vol / this.v0,
-      springBack: this.springBack,
+      springBack: this.springBack ?? 0,
+      stages,
       plasticWork: s.plasticWork,
       stopReason: this.stopReason,
       dentForce: this.dentForce || 0,
@@ -375,6 +482,32 @@ export class CrushScenario {
       massScaleEffective: s.massScaled / s.massPhysical,
     };
   }
+}
+
+function firstIndexOfStage(stage, k) {
+  for (let i = 0; i < stage.length; i++) if (stage[i] >= k) return i;
+  return stage.length;
+}
+
+/**
+ * Peak and first-buckle force of the samples [i0, i1). The first buckle is the
+ * first local maximum of the smoothed force followed by a drop of >= 15 %.
+ * Travel positions are reported relative to `d0`.
+ */
+export function analyseCurve(d, F, i0, i1, d0 = 0) {
+  const sub = F.slice(i0, i1);
+  const n = sub.length;
+  const sm = smoothSeries(sub, 5);
+  let initial = null;
+  for (let i = 1; i < n; i++) {
+    if (sm[i] < sm[i - 1]) continue;
+    let j = i + 1, mn = sm[i];
+    while (j < n && sm[j] <= sm[i]) { mn = Math.min(mn, sm[j]); if (mn < 0.85 * sm[i]) break; j++; }
+    if (j < n && mn < 0.85 * sm[i] && sm[i] > 20) { initial = { F: sm[i], d: d[i0 + i] - d0 }; break; }
+  }
+  let pk = 0;
+  for (let i = 0; i < n; i++) if (sm[i] > sm[pk]) pk = i;
+  return { initial, peak: { F: n ? sm[pk] : 0, d: n ? d[i0 + pk] - d0 : 0 } };
 }
 
 /** Centered moving average with half-width w samples. */

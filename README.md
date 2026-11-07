@@ -65,6 +65,21 @@ What this means for a low-effort crusher:
 7. **A pre-dent helped less than expected in this model** (see limitations). The tilt or off-centre load is the reliable trick.
 8. **For a crusher narrower than the can, keep it thin.** Test: can on its side, 50 mm-wide plate across the middle, no centre rod, crushed to 6 mm, quick mesh. A 3 mm plate lets the can's ends fold up and over its top: 780 N peak, 16 J. A 30 mm-thick plate traps the ends against its sides, so they have to be crushed instead: 2,020 N peak, 28 J. A central rod also gets in the way of the fold.
 
+## Two-press crushers (crease, retract, flatten)
+
+Tick **Then flatten with a second press** in the Run panel to simulate a two-stage mechanism:
+
+1. **Press 1:** your crusher pushes in.
+2. **Retract:** it pulls back while the can is held on the bed. The **pull-out force** shows whether metal folded over the crusher snags it.
+3. **Press 2:** a 160 × 160 mm platen flattens what is left.
+
+`node tools/study-two-stage.mjs` runs a batch of first-press designs through this sequence. The full results are in [docs/two-stage-study.md](docs/two-stage-study.md).
+
+Short answer, for a 12 oz can lying on its side:
+- **First press:** a **Ø20 round bar across the middle** creases it for about 170 N and slides out cleanly.
+- **Avoid thin plates:** they snag on the way out (470 N or more to pull back).
+- **Platen:** it then needs about 1.3 kN to reach 20 mm, 2.4 kN to reach 15 mm and 4.5 kN to reach 10 mm. Flattening below about 15 mm means crushing the stiff seam and base rings, whatever the first press did.
+
 ## The physics model
 
 The model is a 3D explicit-dynamics finite-element shell solver written in plain JavaScript (`src/physics`). It runs in a Web Worker so the page stays responsive.

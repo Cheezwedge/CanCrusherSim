@@ -268,6 +268,7 @@ export class ShellSolver {
     this.triStamp = new Int32Array(T).fill(-1);
     this.excluded = new Set();
     this.scForceTotal = 0;
+    this.fixed = null;
     if (this.selfContact) {
       // pairs already within the contact distance at rest are excluded
       this._rebuildSelfContact(true);
@@ -537,8 +538,10 @@ export class ShellSolver {
     const N = this.N, x = this.x, v = this.v, f = this.f, dt = this.dt;
     const invM = this.invM, mPhys = this.mPhys, g = this.gravity, ld = this.localDamping;
     let ke = 0, vmax2 = 0;
+    const fixed = this.fixed; // optional hold-down mask (1 = node held in place)
     for (let i = 0; i < N; i++) {
       const p = 3 * i;
+      if (fixed && fixed[i]) { v[p] = 0; v[p + 1] = 0; v[p + 2] = 0; continue; }
       let fx = f[p], fy = f[p + 1] + mPhys[i] * g, fz = f[p + 2];
       let vx = v[p], vy = v[p + 1], vz = v[p + 2];
       // Cundall local damping: oppose the out-of-balance force, not the motion

@@ -47,6 +47,9 @@ export function createRunner(post, { sliceMs = 30 } = {}) {
       speed: sc.vCur,
       wallTime: sc.wallTime,
       aux: auxMm(),
+      stage: sc.stage,
+      stages: sc.presses.length,
+      pressLabel: sc.presses[sc.stage].label,
     };
   }
 
@@ -60,17 +63,25 @@ export function createRunner(post, { sliceMs = 30 } = {}) {
   function histDelta() {
     const h = sc.history;
     const n = h.d.length;
-    const d = new Float32Array(n - histSent), F = new Float32Array(n - histSent);
-    for (let i = histSent; i < n; i++) { d[i - histSent] = h.d[i] * 1000; F[i - histSent] = h.F[i]; }
+    const d = new Float32Array(n - histSent), F = new Float32Array(n - histSent), st = new Uint8Array(n - histSent);
+    for (let i = histSent; i < n; i++) { d[i - histSent] = h.d[i] * 1000; F[i - histSent] = h.F[i]; st[i - histSent] = h.stage[i]; }
     histSent = n;
-    return { d, F };
+    return { d, F, s: st };
   }
 
+  function toolMm() {
+    const t = sc.activeTool();
+    return { ...t, x: t.x * 1000, y: t.y * 1000, z: t.z * 1000 };
+  }
+
+  let stageSent = 0;
   function sendFrame() {
     const pos = positionsMm();
     const strain = sc.solver.nodePlasticStrain();
     const hist = histDelta();
-    post({ type: 'frame', id, positions: pos, strain, hist, live: live() }, [pos.buffer, strain.buffer, hist.d.buffer, hist.F.buffer]);
+    const msg = { type: 'frame', id, positions: pos, strain, hist, live: live() };
+    if (sc.stage !== stageSent) { stageSent = sc.stage; msg.tool = toolMm(); }
+    post(msg, [pos.buffer, strain.buffer, hist.d.buffer, hist.F.buffer, hist.s.buffer]);
   }
 
   function finish() {
@@ -79,10 +90,11 @@ export function createRunner(post, { sliceMs = 30 } = {}) {
     const h = sc.history;
     const msg = {
       type: 'done', id, summary,
-      history: { d: Float32Array.from(h.d, (v) => v * 1000), F: Float32Array.from(h.F) },
+      history: { d: Float32Array.from(h.d, (v) => v * 1000), F: Float32Array.from(h.F), s: Uint8Array.from(h.stage) },
       live: live(),
+      tool: toolMm(),
     };
-    const transfer = [msg.history.d.buffer, msg.history.F.buffer];
+    const transfer = [msg.history.d.buffer, msg.history.F.buffer, msg.history.s.buffer];
     if (!headless) {
       msg.positions = positionsMm();
       msg.strain = sc.solver.nodePlasticStrain();
@@ -126,6 +138,7 @@ export function createRunner(post, { sliceMs = 30 } = {}) {
     headless = !!msg.headless;
     frameWanted = true;
     histSent = 0;
+    stageSent = 0;
     try {
       sc = new CrushScenario(msg.params);
     } catch (err) {
