@@ -233,8 +233,113 @@ export class PunchTool extends ToolBase {
   describe() { return { kind: 'punch', diameter: this.R * 2, height: this.hh * 2, edgeRadius: this.r, ramDiameter: this.ramR * 2 }; }
 }
 
+/**
+ * Platen whose bottom face has a profile along its local z axis (the can's
+ * length when the can lies on its side). Reference point py = lowest point.
+ *   flat | convex (cylinder bulging down, radius) | concave (dished up, radius)
+ *   roof (V, apex down, angleDeg) | valley (V, apex up) | tilt (one end lower)
+ */
+export class ProfilePlatenTool extends ToolBase {
+  constructor(opts) {
+    super('profile', opts);
+    this.hx = opts.width / 2;
+    this.hz = opts.length / 2;
+    this.th = opts.thickness ?? 0.02;
+    this.profile = opts.profile || 'flat';
+    this.R = opts.radius ?? 0.4;
+    this.ta = Math.tan(((opts.angleDeg ?? 6) * Math.PI) / 180);
+    const hz = this.hz, R = this.R;
+    if (this.profile === 'concave') this.c0 = Math.sqrt(Math.max(0, R * R - hz * hz));
+  }
+  /** Height of the bottom face above the lowest point, and its slope, at local z. */
+  _yb(z, out) {
+    const hz = this.hz, R = this.R, ta = this.ta;
+    switch (this.profile) {
+      case 'convex': { const q = Math.sqrt(R * R - z * z); out[0] = R - q; out[1] = z / q; return; }
+      case 'concave': { const q = Math.sqrt(R * R - z * z); out[0] = q - this.c0; out[1] = -z / q; return; }
+      case 'roof': out[0] = Math.abs(z) * ta; out[1] = z >= 0 ? ta : -ta; return;
+      case 'valley': out[0] = (hz - Math.abs(z)) * ta; out[1] = z >= 0 ? -ta : ta; return;
+      case 'tilt': out[0] = (z + hz) * ta; out[1] = ta; return;
+      default: out[0] = 0; out[1] = 0;
+    }
+  }
+  sdf(x, y, z, n) {
+    this._local(x, y, z, _l);
+    const lx = _l[0], ly = _l[1], lz = _l[2];
+    const zc = lz > this.hz ? this.hz : lz < -this.hz ? -this.hz : lz;
+    const yb = _pf; this._yb(zc, yb);
+    const ex = Math.abs(lx) - this.hx, ez = Math.abs(lz) - this.hz;
+    let d;
+    if (ex <= 0 && ez <= 0) {
+      const sl = yb[1], c = 1 / Math.sqrt(1 + sl * sl);
+      d = (yb[0] - ly) * c;
+      n[0] = 0; n[1] = -c; n[2] = sl * c;
+    } else {
+      const a = ex > 0 ? ex : 0, b = ez > 0 ? ez : 0;
+      const v = yb[0] - ly > 0 ? yb[0] - ly : 0;
+      d = Math.sqrt(a * a + b * b + v * v);
+      if (d < 1e-12) { n[0] = 0; n[1] = -1; n[2] = 0; }
+      else { n[0] = (lx < 0 ? -a : a) / d; n[1] = -v / d; n[2] = (lz < 0 ? -b : b) / d; }
+    }
+    this._toWorldN(n);
+    return d;
+  }
+  describe() {
+    return { kind: 'profile', width: this.hx * 2, length: this.hz * 2, thickness: this.th, profile: this.profile, radius: this.R, angleDeg: (Math.atan(this.ta) * 180) / Math.PI, yaw: this.yaw };
+  }
+}
+const _pf = new Float64Array(2);
+
+/**
+ * Hinged (clamshell) platen, like a hand lever crusher's jaw. Its bottom face
+ * passes through a pivot line parallel to world x at (pivotY, pivotZ) and
+ * extends `length` along +z. phi = how far it is raised (0 = parallel to the
+ * bed). omega > 0 closes it.
+ */
+export class HingedPlatenTool extends ToolBase {
+  constructor(opts) {
+    super('hinge', opts);
+    this.hx = opts.width / 2;
+    this.L = opts.length;
+    this.th = opts.thickness ?? 0.02;
+    this.phi = opts.phi ?? 0.5;
+    this.omega = 0;
+    this.rotating = true;
+    this.fromAbove = false;
+    this.mres = 0; // moment resisting closure about the pivot (N m)
+  }
+  sdf(x, y, z, n) {
+    const dy = y - this.py, dz = z - this.pz;
+    const c = Math.cos(this.phi), s = Math.sin(this.phi);
+    const u = dz * c + dy * s;      // along the plate from the pivot
+    const w = dy * c - dz * s;      // height above the bottom face
+    const ex = Math.abs(x - this.px) - this.hx;
+    const eu = u > this.L ? u - this.L : u < 0 ? -u : 0;
+    const dFace = -w;               // > 0 below the face (outside the solid)
+    if (ex <= 0 && eu <= 0) { n[0] = 0; n[1] = -c; n[2] = s; return dFace; }
+    const a = ex > 0 ? ex : 0, v = dFace > 0 ? dFace : 0;
+    const d = Math.sqrt(a * a + eu * eu + v * v);
+    if (d < 1e-12) { n[0] = 0; n[1] = -c; n[2] = s; return 0; }
+    // direction: combine x excess, along-plate excess, and below-face part
+    const su = u > this.L ? 1 : -1;
+    n[0] = ((x - this.px) < 0 ? -a : a) / d;
+    n[1] = (su * eu * s - v * c) / d;
+    n[2] = (su * eu * c + v * s) / d;
+    return d;
+  }
+  velocityAt(x, y, z, out) {
+    const w = this.omega;
+    out[0] = 0; out[1] = -w * (z - this.pz); out[2] = w * (y - this.py);
+  }
+  describe() {
+    return { kind: 'hinge', width: this.hx * 2, length: this.L, thickness: this.th, pivotY: this.py, pivotZ: this.pz, phi: this.phi };
+  }
+}
+
 export function makeTool(spec) {
   switch (spec.type) {
+    case 'profile': return new ProfilePlatenTool(spec);
+    case 'hinge': return new HingedPlatenTool(spec);
     case 'plate': return new PlateTool(spec);
     case 'bar': return new BarTool(spec);
     case 'punch': return new PunchTool(spec);

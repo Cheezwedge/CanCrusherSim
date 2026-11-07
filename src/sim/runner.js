@@ -39,6 +39,7 @@ export function createRunner(post, { sliceMs = 30 } = {}) {
       work: sc.work,
       peak: sc.peak.F,
       toolY: sc.tool.py * 1000,
+      toolPhi: sc.tool.phi ?? 0,
       height: sc.currentHeight() * 1000,
       progress: sc.progress(),
       phase: sc.phase,

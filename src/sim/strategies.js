@@ -9,11 +9,23 @@ export const STRATEGIES = [
   { key: 'sideBar', name: 'Side, Ø20 bar across the middle', over: { tilt: 90, tool: 'bar', barD: 20, barL: 120, dent: 0, gap: 12 } },
 ];
 
+/** Second-press platen shapes offered in the UI (see tools/study-platen-shapes.mjs). */
+export const PLATEN_SHAPES = {
+  flat: { shape: 'flat' },
+  convex400: { shape: 'convex', radius: 0.4 },
+  convex250: { shape: 'convex', radius: 0.25 },
+  concave400: { shape: 'concave', radius: 0.4 },
+  roof5: { shape: 'roof', angleDeg: 5 },
+  valley5: { shape: 'valley', angleDeg: 5 },
+  tilt8: { shape: 'tilt', angleDeg: 8 },
+  hinge: { shape: 'hinge' },
+};
+
 export const UI_DEFAULTS = {
   canPreset: 'std355', wall: 0.097, imperf: 0.08, dent: 0, dentH: 50, dentFace: 'side', seed: 7,
   tilt: 0, tool: 'plate', plateW: 100, plateL: 100, plateT: 20, barD: 20, barL: 120, punchD: 40, punchH: 30, edgeR: 3,
   yaw: 0, offX: 0, offZ: 0, mu: 0.25, gap: 25, res: 'standard', rod: 18,
-  platen: false, platenGap: 6,
+  platen: false, platenGap: 6, platenShape: 'flat',
 };
 
 /** Convert UI settings (mm, degrees) into physics parameters (SI units). */
@@ -34,7 +46,7 @@ export function uiToParams(u) {
     seed: u.seed,
     dent: { depth: u.dent, heightFrac: u.dentH / 100, azimuthDeg: dentAz, width: 5 },
     finalGap: u.gap / 1000,
-    secondPress: { enabled: !!u.platen, size: 0.16, finalGap: (u.platenGap ?? 6) / 1000 },
+    secondPress: { enabled: !!u.platen, size: 0.16, finalGap: (u.platenGap ?? 6) / 1000, ...PLATEN_SHAPES[u.platenShape || 'flat'] },
   };
 }
 

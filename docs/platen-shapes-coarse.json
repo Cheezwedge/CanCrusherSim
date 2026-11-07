@@ -1,0 +1,138 @@
+[
+ {
+  "key": "flat",
+  "name": "Flat",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 3532.2725667656227,
+   "15": 2398.154918085736,
+   "20": 1621.669727914813,
+   "25": 1239.7090436083906
+  },
+  "minLoadedThickness": 7.749214025781951,
+  "platenPeak": 7728.426055731049,
+  "platenWork": 73.36488489500496,
+  "finalThickness": 8.059145778555667,
+  "stopReason": "force limit",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "convex400",
+  "name": "Curved, bulging down (R 400 mm)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 4254.0043391421805,
+   "15": 2773.510770711276,
+   "20": 1888.1994795770615,
+   "25": 1362.8139964186494
+  },
+  "minLoadedThickness": 9.75686240443018,
+  "platenPeak": 8096.13688637844,
+  "platenWork": 76.16593839750026,
+  "finalThickness": 9.988366558241975,
+  "stopReason": "force limit",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "convex250",
+  "name": "Curved, bulging down (R 250 mm)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 5922.914789330417,
+   "15": 2995.983158391684,
+   "20": 2418.819806978813,
+   "25": 1527.9515675369528
+  },
+  "minLoadedThickness": 10.641105492589475,
+  "platenPeak": 8192.96893305142,
+  "platenWork": 82.73423790681338,
+  "finalThickness": 10.864103120867787,
+  "stopReason": "force limit",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "concave400",
+  "name": "Curved, dished up (R 400 mm)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": null,
+   "15": 2757.2598775773286,
+   "20": 1736.5018629651263,
+   "25": 1103.3792982448288
+  },
+  "minLoadedThickness": 13.957714769745369,
+  "platenPeak": 3101.4429989561795,
+  "platenWork": 46.50101627404534,
+  "finalThickness": 14.193261604672898,
+  "stopReason": "stroke complete",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "roof5",
+  "name": "Roof / V pointing down (5°)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 5450.8476894676905,
+   "15": 3358.805037662902,
+   "20": 2602.486777839439,
+   "25": 1383.3785525055862
+  },
+  "minLoadedThickness": 10.235516679209336,
+  "platenPeak": 8194.506335009128,
+  "platenWork": 82.80802989943481,
+  "finalThickness": 10.501643856618905,
+  "stopReason": "force limit",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "valley5",
+  "name": "Valley / V pointing up (5°)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": null,
+   "15": 3113.2576852192656,
+   "20": 1951.9572302349015,
+   "25": 1141.0804731439164
+  },
+  "minLoadedThickness": 12.036511734418093,
+  "platenPeak": 4252.62371668582,
+  "platenWork": 58.340884422062864,
+  "finalThickness": 12.36462443910903,
+  "stopReason": "stroke complete",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "tilt8",
+  "name": "Flat, tilted 8° (one end first)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": null,
+   "15": null,
+   "20": null,
+   "25": 2067.4070169806964
+  },
+  "minLoadedThickness": 22.076337770382764,
+  "platenPeak": 2439.6266971187824,
+  "platenWork": 40.024748875890324,
+  "finalThickness": 22.877979281859442,
+  "stopReason": "stroke complete",
+  "press1Peak": 225.6083950504948
+ },
+ {
+  "key": "hinge",
+  "name": "Hinged clamshell (pivot past one end)",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 8020.92186983563,
+   "15": 6693.957983760515,
+   "20": 4691.333753978245,
+   "25": 3796.8091979710643
+  },
+  "minLoadedThickness": 10.889915335763105,
+  "platenPeak": 8507.629817349063,
+  "platenWork": 88.37291641797309,
+  "finalThickness": 11.206771577422327,
+  "stopReason": "force limit",
+  "press1Peak": 225.6083950504948
+ }
+]

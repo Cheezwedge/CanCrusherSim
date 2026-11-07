@@ -80,6 +80,8 @@ Short answer, for a 12 oz can lying on its side:
 - **Avoid thin plates:** they snag on the way out (470 N or more to pull back).
 - **Platen:** it then needs about 1.3 kN to reach 20 mm, 2.4 kN to reach 15 mm and 4.5 kN to reach 10 mm. Flattening below about 15 mm means crushing the stiff seam and base rings, whatever the first press did.
 
+**Platen shape:** the Run panel also offers curved (bulging or dished), roof/valley V, tilted and hinged-clamshell platens. Flat comes out best; see [docs/platen-shapes.md](docs/platen-shapes.md). Shaped platens either reach the already-creased middle first, or leave the stiff end rings thicker. A hinged jaw puts the far ring on twice the lever arm and needs about 3× the force.
+
 ## The physics model
 
 The model is a 3D explicit-dynamics finite-element shell solver written in plain JavaScript (`src/physics`). It runs in a Web Worker so the page stays responsive.

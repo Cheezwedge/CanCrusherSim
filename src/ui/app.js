@@ -6,6 +6,7 @@ import { REFERENCE_RUNS } from './referenceRuns.js';
 import { STRATEGIES, UI_DEFAULTS, uiToParams } from '../sim/strategies.js';
 
 const $ = (id) => document.getElementById(id);
+const PLATEN_LABEL = { convex: 'curved (bulging)', concave: 'curved (dished)', roof: 'roof-V', valley: 'valley-V', tilt: 'tilted', hinge: 'hinged' };
 const N2LBF = 0.2248089, N2KGF = 0.1019716;
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,8 @@ function initControls() {
   $('platen').checked = !!ui.platen;
   $('platenOpts').hidden = !ui.platen;
   $('platen').addEventListener('change', (e) => { ui.platen = e.target.checked; $('platenOpts').hidden = !ui.platen; setupChanged(); });
+  $('platenShape').value = ui.platenShape;
+  $('platenShape').addEventListener('change', (e) => { ui.platenShape = e.target.value; setupChanged(); });
   $('rod').value = String(ui.rod);
   $('rod').addEventListener('change', (e) => { ui.rod = +e.target.value; setupChanged(); });
   $('res').value = ui.res;
@@ -146,7 +149,7 @@ export function describeParams(p) {
   if (p.dent && p.dent.depth > 0) extras.push(`${p.dent.depth} mm dent`);
   if (t.yawDeg) extras.push(`rotated ${t.yawDeg}°`);
   if (t.ramDiameter === 0) extras.push('no centre rod');
-  if (p.secondPress && p.secondPress.enabled) extras.push(`then platen to ${Math.round(p.secondPress.finalGap * 1000)} mm`);
+  if (p.secondPress && p.secondPress.enabled) extras.push(`then ${p.secondPress.shape && p.secondPress.shape !== 'flat' ? PLATEN_LABEL[p.secondPress.shape] || p.secondPress.shape : 'flat'} platen to ${Math.round(p.secondPress.finalGap * 1000)} mm`);
   if (t.offsetX || t.offsetZ) extras.push('off-centre');
   return `${dir}, ${tool}${extras.length ? ' · ' + extras.join(', ') : ''}`;
 }
@@ -262,7 +265,7 @@ function onSimMessage(m) {
       lastLive = m.live;
       if (view) {
         if (m.tool) view.setTool(m.tool, { x: m.tool.x, y: m.tool.y, z: m.tool.z });
-        view.updateCan(m.positions, m.strain); view.setToolY(m.live.toolY); view.setAux(m.live.aux);
+        view.updateCan(m.positions, m.strain); view.setToolY(m.live.toolY, m.live.toolPhi); view.setAux(m.live.aux);
       }
       setStatus('running', phaseText(m.live));
       renderHud(); renderTiles(); updateChart();

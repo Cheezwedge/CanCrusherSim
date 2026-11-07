@@ -588,6 +588,10 @@ export class ShellSolver {
       }
       const isPlane = tool.kind === 'plane';
       const cull = isPlane || tool.fromAbove;
+      const rot = !!tool.rotating;
+      let Mres = 0;
+      const tv = _tv;
+      tv[0] = tool.vx; tv[1] = tool.vy; tv[2] = tool.vz;
       const yLim = tool.py + (isPlane ? 0.002 : -0.002 - tool.reachBelow);
       for (let i = 0; i < N; i++) {
         const p = 3 * i;
@@ -606,7 +610,8 @@ export class ShellSolver {
         const mi = m[i];
         const kc = kap * mi * invDt2;
         const cc = 2 * zeta * Math.sqrt(kap) * mi / dt;
-        const rvx = v[p] - tool.vx, rvy = v[p + 1] - tool.vy, rvz = v[p + 2] - tool.vz;
+        if (rot) tool.velocityAt(x[p], y, x[p + 2], tv);
+        const rvx = v[p] - tv[0], rvy = v[p + 1] - tv[1], rvz = v[p + 2] - tv[2];
         const vn = rvx * n[0] + rvy * n[1] + rvz * n[2];
         let fn = kc * pen - cc * vn;
         if (fn < 0) fn = 0;
@@ -622,6 +627,7 @@ export class ShellSolver {
         const cx = fn * n[0] + tx, cy = fn * n[1] + ty, cz = fn * n[2] + tz;
         f[p] += cx; f[p + 1] += cy; f[p + 2] += cz;
         Fx -= cx; Fy -= cy; Fz -= cz;
+        if (rot) Mres += (y - tool.py) * cz - (x[p + 2] - tool.pz) * cy;
         count++;
       }
       // Extra sample points (edge midpoints and triangle centres) for shaped
@@ -649,9 +655,10 @@ export class ShellSolver {
             const ms = pass === 0 ? 0.5 * (m[i0] + m[i1]) : (m[i0] + m[i1] + m[i2]) / 3;
             const kc = kap * ms * invDt2 * w;
             const cc = 2 * zeta * Math.sqrt(kap) * ms * w / dt;
+            if (rot) tool.velocityAt(sx, sy, sz, tv);
             let vn;
-            if (pass === 0) vn = (0.5 * (v[a] + v[b]) - tool.vx) * n[0] + (0.5 * (v[a + 1] + v[b + 1]) - tool.vy) * n[1] + (0.5 * (v[a + 2] + v[b + 2]) - tool.vz) * n[2];
-            else vn = ((v[a] + v[b] + v[c]) / 3 - tool.vx) * n[0] + ((v[a + 1] + v[b + 1] + v[c + 1]) / 3 - tool.vy) * n[1] + ((v[a + 2] + v[b + 2] + v[c + 2]) / 3 - tool.vz) * n[2];
+            if (pass === 0) vn = (0.5 * (v[a] + v[b]) - tv[0]) * n[0] + (0.5 * (v[a + 1] + v[b + 1]) - tv[1]) * n[1] + (0.5 * (v[a + 2] + v[b + 2]) - tv[2]) * n[2];
+            else vn = ((v[a] + v[b] + v[c]) / 3 - tv[0]) * n[0] + ((v[a + 1] + v[b + 1] + v[c + 1]) / 3 - tv[1]) * n[1] + ((v[a + 2] + v[b + 2] + v[c + 2]) / 3 - tv[2]) * n[2];
             let fn = kc * pen - cc * vn;
             if (fn <= 0) continue;
             const fx = fn * n[0] * w, fy = fn * n[1] * w, fz = fn * n[2] * w;
@@ -659,10 +666,12 @@ export class ShellSolver {
             f[b] += fx; f[b + 1] += fy; f[b + 2] += fz;
             if (pass === 1) { f[c] += fx; f[c + 1] += fy; f[c + 2] += fz; }
             Fx -= fn * n[0]; Fy -= fn * n[1]; Fz -= fn * n[2];
+            if (rot) Mres += (sy - tool.py) * fn * n[2] - (sz - tool.pz) * fn * n[1];
           }
         }
       }
       tool.fx = Fx; tool.fy = Fy; tool.fz = Fz; tool.contactCount = count;
+      if (rot) tool.mres = Mres;
     }
   }
 
@@ -856,6 +865,8 @@ export class ShellSolver {
     return W;
   }
 }
+
+const _tv = new Float64Array(3);
 
 /**
  * Squared distance from point p to triangle (a,b,c) (offsets into x).

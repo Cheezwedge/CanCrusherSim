@@ -145,12 +145,14 @@ export class CrushScenario {
       ? P.presses.map((ps) => ({ ...ps }))
       : [{ tool: P.tool, finalGap: P.finalGap, label: 'crusher' }];
     if (P.secondPress && P.secondPress.enabled) {
-      const sz = P.secondPress.size ?? 0.16;
-      specs.push({
-        tool: { type: 'plate', width: sz, length: sz, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0.018 },
-        finalGap: P.secondPress.finalGap ?? 0.006,
-        label: 'platen',
-      });
+      const sp = P.secondPress;
+      const sz = sp.size ?? 0.16;
+      const shape = sp.shape || 'flat';
+      let tl;
+      if (shape === 'hinge') tl = { type: 'hinge', width: sz, length: sz + 0.04, thickness: 0.02 };
+      else if (shape === 'flat') tl = { type: 'plate', width: sz, length: sz, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0.018 };
+      else tl = { type: 'profile', width: sz, length: sz, thickness: 0.02, profile: shape, radius: sp.radius ?? 0.4, angleDeg: sp.angleDeg ?? 6 };
+      specs.push({ tool: tl, finalGap: sp.finalGap ?? 0.006, label: 'platen', motion: shape === 'hinge' ? 'hinge' : 'translate' });
     }
     this.presses = specs.map((ps, k) => {
       const t = s.addTool(makeTool({ ...ps.tool, friction: P.friction }));
@@ -163,6 +165,7 @@ export class CrushScenario {
         targetY: ps.finalGap, startY: t.py, stroke: 0, travel: 0, work: 0,
         startTravel: 0, firstSample: 0, peak: { F: 0, d: 0 },
         springBack: null, pullForce: 0, snagged: false, overTop: 0, heightAfter: null, stopReason: '',
+        motion: ps.motion || 'translate', rc: 0, phiEnd: 0,
       };
     });
     this.stage = 0;
@@ -215,7 +218,7 @@ export class CrushScenario {
     this.done = false;
     this.travel = 0;        // cumulative crusher travel over all presses
     this.pressTravel = 0;   // travel of the current press
-    this.history = { d: [], F: [], W: [], h: [], ke: [], stage: [] };
+    this.history = { d: [], F: [], W: [], h: [], ke: [], stage: [], canH: [] };
     this.fixed = null;
     this._acc = { F: 0, n: 0 };
     this.sampleEvery = 0.0001; // record every 0.1 mm of travel
@@ -274,13 +277,20 @@ export class CrushScenario {
     for (let k = 0; k < n; k++) {
       const tool = this.tool;
       const pr = this.presses[this.stage];
-      tool.vy = this._toolVelocity();
+      const hinge = pr.motion === 'hinge';
+      if (hinge) {
+        tool.vy = 0;
+        tool.omega = this.phase === 'crush' ? this.vCur / pr.rc : this.phase === 'release' ? -P.retractSpeed / pr.rc : 0;
+      } else tool.vy = this._toolVelocity();
       if (this.phase === 'dent-in' || this.phase === 'dent-out') { this._dentStep(); continue; }
       s.step();
-      const F = tool.fy; // force from the can pushing the crusher up (N)
+      if (hinge) tool.phi -= tool.omega * s.dt;
+      // force from the can pushing the crusher back (N); for a hinged platen the
+      // resisting moment expressed as a force at the can's centre
+      const F = hinge ? tool.mres / pr.rc : tool.fy;
       if (this.phase === 'crush') {
         this._govern(F);
-        const dd = -tool.vy * s.dt;
+        const dd = hinge ? this.vCur * s.dt : -tool.vy * s.dt;
         this.travel += dd;
         this.pressTravel += dd;
         this.work += F * dd;
@@ -293,18 +303,19 @@ export class CrushScenario {
           this.history.d.push(this.travel);
           this.history.F.push(Fa);
           this.history.W.push(this.work);
-          this.history.h.push(tool.py);
+          this.history.h.push(hinge ? tool.py + pr.rc * Math.sin(tool.phi) : tool.py);
           this.history.ke.push(s.kinetic);
           this.history.stage.push(this.stage);
+          this.history.canH.push(this.currentHeight());
           this._nextSample += this.sampleEvery;
           if (Fa > this.peak.F) { this.peak.F = Fa; this.peak.d = this.travel; }
           if (Fa > pr.peak.F) { pr.peak.F = Fa; pr.peak.d = this.pressTravel; }
           if (Fa > P.maxForce) { pr.stopReason = 'force limit'; this.stopReason = 'force limit'; this._endCrush(); }
         }
-        if (tool.py <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
+        if (hinge ? tool.phi <= 0 : tool.py <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
         if (!Number.isFinite(s.x[0])) { this.stopReason = 'numerical failure'; this.done = true; return true; }
       } else if (this.phase === 'release') {
-        const risen = tool.py - this.releaseStart;
+        const risen = hinge ? (tool.phi - this.releaseStart) * pr.rc : tool.py - this.releaseStart;
         // pull-out force: the can (held on the bed) dragging the crusher down
         this._pullAcc = this._pullAcc * 0.9 + Math.max(0, -F) * 0.1;
         if (this._pullAcc > pr.pullForce) pr.pullForce = this._pullAcc;
@@ -365,7 +376,7 @@ export class CrushScenario {
       return;
     }
     this.phase = 'release';
-    this.releaseStart = this.tool.py;
+    this.releaseStart = pr.motion === 'hinge' ? this.tool.phi : this.tool.py;
     this._pullAcc = 0;
     this._freeSteps = 0;
     pr.overTop = this._countOverTop(this.tool);
@@ -373,6 +384,43 @@ export class CrushScenario {
     const s = this.solver, x = s.x;
     if (!s.fixed) s.fixed = new Uint8Array(s.N);
     for (let i = 0; i < s.N; i++) s.fixed[i] = x[3 * i + 1] < 0.0015 ? 1 : 0;
+  }
+
+  /**
+   * For a profiled platen the lowest point may not be above the can's highest
+   * point: lift it so no node is inside the face when it starts.
+   */
+  _profileLift(tool) {
+    if (tool.kind !== 'profile') return 0;
+    const x = this.solver.x, n = [0, 0, 0];
+    const top = this.currentHeight() + 0.0003;
+    tool.py = top;
+    let worst = 0;
+    for (let i = 0; i < this.solver.N; i++) {
+      const d = tool.sdf(x[3 * i], x[3 * i + 1], x[3 * i + 2], n) - 0.5 * this.solver.nodeThick[i];
+      if (d < worst) worst = d;
+    }
+    return -worst + 0.0003;
+  }
+
+  /** Place a hinged platen: pivot just beyond the can's -z end at the stop height. */
+  _placeHinge(pr) {
+    const s = this.solver, x = s.x, t = pr.tool;
+    let zmin = Infinity, zmax = -Infinity;
+    for (let i = 0; i < s.N; i++) { zmin = Math.min(zmin, x[3 * i + 2]); zmax = Math.max(zmax, x[3 * i + 2]); }
+    t.px = 0; t.py = pr.targetY; t.pz = zmin - 0.015;
+    t.L = Math.max(t.L, zmax - t.pz + 0.02);
+    pr.rc = 0.5 * (zmin + zmax) - t.pz;
+    let phi0 = 0;
+    for (let i = 0; i < s.N; i++) {
+      const dz = x[3 * i + 2] - t.pz;
+      if (dz < 0.002) continue;
+      const a = Math.atan2(x[3 * i + 1] + 0.5 * s.nodeThick[i] + 0.0003 - t.py, dz);
+      if (a > phi0) phi0 = a;
+    }
+    t.phi = phi0 + 0.004;
+    pr.startY = t.phi;
+    pr.stroke = pr.rc * t.phi;
   }
 
   /** Nodes of the can lying on top of the crusher (metal folded over it). */
@@ -398,9 +446,12 @@ export class CrushScenario {
       const nx = this.presses[this.stage];
       this.tool = nx.tool;
       nx.tool.enabled = true;
-      nx.tool.py = this.currentHeight() + 0.0003;
-      nx.startY = nx.tool.py;
-      nx.stroke = Math.max(0, nx.startY - nx.targetY);
+      if (nx.motion === 'hinge') this._placeHinge(nx);
+      else {
+        nx.tool.py = this.currentHeight() + 0.0003 + this._profileLift(nx.tool);
+        nx.startY = nx.tool.py;
+        nx.stroke = Math.max(0, nx.startY - nx.targetY);
+      }
       nx.startTravel = this.travel;
       nx.firstSample = this.history.d.length;
       // fresh governor for the new press
@@ -430,7 +481,7 @@ export class CrushScenario {
   /** Description of the crusher currently in use (for display). */
   activeTool() {
     const t = this.tool;
-    return { ...t.describe(), x: t.px, y: t.py, z: t.pz, stage: this.stage, label: this.presses[this.stage].label };
+    return { ...t.describe(), x: t.px, y: t.py, z: t.pz, stage: this.stage, label: this.presses[this.stage].label, phi: t.phi ?? 0 };
   }
 
   /** Bounding height of the can now (m). */

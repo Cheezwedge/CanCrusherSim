@@ -323,8 +323,20 @@ tr.dim td { opacity: 0.45; }
         <p class="hint">After the crusher retracts (the can is held on the bed, so a crusher that snags shows a pull-out force), a 160 × 160 mm flat platen comes down on what is left.</p>
       </div>
       <div class="field" id="platenOpts" hidden>
+        <label for="platenShape">Platen face</label>
+        <select id="platenShape">
+          <option value="flat">Flat</option>
+          <option value="convex400">Curved, bulging down (R 400 mm)</option>
+          <option value="convex250">Curved, bulging down (R 250 mm)</option>
+          <option value="concave400">Curved, dished up (R 400 mm)</option>
+          <option value="roof5">Roof / V pointing down (5°)</option>
+          <option value="valley5">Valley / V pointing up (5°)</option>
+          <option value="tilt8">Flat, tilted 8°</option>
+          <option value="hinge">Hinged clamshell</option>
+        </select>
         <div class="field-top"><label for="platenGap">Platen stops at</label><output id="platenGapOut" for="platenGap"></output></div>
         <input type="range" id="platenGap" min="4" max="30" step="1">
+        <p class="hint">Stop height is the platen's lowest point. A hinged platen closes until it is parallel to the bed at this height.</p>
       </div>
       <div class="field">
         <label for="res">Mesh resolution</label>

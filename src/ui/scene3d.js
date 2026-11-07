@@ -372,7 +372,56 @@ export class CrushView {
     }
     let body;
     let top = 20;
-    if (tool.kind === 'plate') {
+    this.hinge = null;
+    g.rotation.set(0, 0, 0);
+    if (tool.kind === 'hinge') {
+      // clamshell jaw: a pivot group at the hinge line, the plate extending along +z
+      const w = tool.width * 1000, L = tool.length * 1000, t = tool.thickness * 1000;
+      const piv = new THREE.Group();
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(w, t, L), this.toolMat);
+      plate.position.set(0, t / 2, L / 2);
+      plate.castShadow = true; plate.receiveShadow = true;
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, w + 30, 24), this.ramMat);
+      pin.rotation.z = Math.PI / 2;
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 260, 20), this.ramMat);
+      handle.rotation.x = Math.PI / 2; handle.position.set(0, t + 8, L + 120);
+      piv.add(plate, pin, handle);
+      piv.rotation.x = -(tool.phi || 0);
+      g.add(piv);
+      g.position.set(pos.x, tool.pivotY * 1000, tool.pivotZ * 1000);
+      this.hinge = piv;
+      this.requestRender();
+      return;
+    }
+    if (tool.kind === 'profile') {
+      // extrude the face profile (along z) across the platen width (x)
+      const w = tool.width * 1000, hz = (tool.length * 1000) / 2, t = tool.thickness * 1000;
+      const R = tool.radius * 1000, ta = Math.tan((tool.angleDeg * Math.PI) / 180);
+      const yb = (z) => {
+        switch (tool.profile) {
+          case 'convex': return R - Math.sqrt(R * R - z * z);
+          case 'concave': return Math.sqrt(R * R - z * z) - Math.sqrt(R * R - hz * hz);
+          case 'roof': return Math.abs(z) * ta;
+          case 'valley': return (hz - Math.abs(z)) * ta;
+          case 'tilt': return (z + hz) * ta;
+          default: return 0;
+        }
+      };
+      let ymax = 0;
+      const shape = new THREE.Shape();
+      const n = 48;
+      for (let i = 0; i <= n; i++) {
+        const z = -hz + (2 * hz * i) / n, y = yb(z);
+        ymax = Math.max(ymax, y);
+        if (i === 0) shape.moveTo(z, y); else shape.lineTo(z, y);
+      }
+      shape.lineTo(hz, ymax + t); shape.lineTo(-hz, ymax + t); shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: w, bevelEnabled: false });
+      geo.rotateY(-Math.PI / 2);
+      geo.translate(w / 2, 0, 0);
+      body = new THREE.Mesh(geo, this.toolMat);
+      top = ymax + t;
+    } else if (tool.kind === 'plate') {
       const w = tool.width * 1000, l = tool.length * 1000, t = tool.thickness * 1000;
       body = new THREE.Mesh(new THREE.BoxGeometry(w, t, l), this.toolMat);
       body.position.y = t / 2;
@@ -451,15 +500,27 @@ export class CrushView {
     this.requestRender();
   }
 
-  setToolY(y) {
+  setToolY(y, phi) {
     cancelAnimationFrame(this._liftRaf);
-    this.toolGroup.position.y = y;
+    if (this.hinge) this.hinge.rotation.x = -(phi || 0);
+    else this.toolGroup.position.y = y;
     this.requestRender();
   }
 
   /** Animate the crusher up by `dy` mm (after a run) so the crushed can is visible. */
   liftTool(y0, dy) {
     cancelAnimationFrame(this._liftRaf);
+    if (this.hinge) {
+      const p0 = -this.hinge.rotation.x, t0h = performance.now();
+      const stepH = (now) => {
+        const u = Math.min(1, (now - t0h) / 900);
+        this.hinge.rotation.x = -(p0 + 0.7 * u * u * (3 - 2 * u));
+        this.requestRender();
+        if (u < 1) this._liftRaf = requestAnimationFrame(stepH);
+      };
+      this._liftRaf = requestAnimationFrame(stepH);
+      return;
+    }
     const t0 = performance.now();
     const step = (now) => {
       const u = Math.min(1, (now - t0) / 900);

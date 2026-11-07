@@ -1,0 +1,87 @@
+[
+ {
+  "key": "flat",
+  "name": "Flat",
+  "res": "standard",
+  "forceToThickness": {
+   "12": 3134.278179854782,
+   "15": 2367.4449261253867,
+   "20": 1301.2567190689042,
+   "25": 965.3872898331812
+  },
+  "minLoadedThickness": 6.99423296416482,
+  "platenPeak": 8492.302621694185,
+  "platenWork": 71.85568804628339,
+  "finalThickness": 7.304190838112745,
+  "stopReason": "force limit",
+  "press1Peak": 171.8827184635676
+ },
+ {
+  "key": "convex400",
+  "name": "Curved, bulging down (R 400 mm)",
+  "res": "standard",
+  "forceToThickness": {
+   "12": 3926.5155419028933,
+   "15": 2726.4752370160663,
+   "20": 1336.2910774360817,
+   "25": 1182.2437875930887
+  },
+  "minLoadedThickness": 9.042277330188078,
+  "platenPeak": 7920.24151519393,
+  "platenWork": 74.89859470798443,
+  "finalThickness": 9.163439104832818,
+  "stopReason": "stroke complete",
+  "press1Peak": 171.8827184635676
+ },
+ {
+  "key": "concave400",
+  "name": "Curved, dished up (R 400 mm)",
+  "res": "standard",
+  "forceToThickness": {
+   "12": null,
+   "15": 2655.5215146610103,
+   "20": 1378.8355319918899,
+   "25": 932.2385031301953
+  },
+  "minLoadedThickness": 13.945168630735717,
+  "platenPeak": 2785.6425342260445,
+  "platenWork": 39.639395007634434,
+  "finalThickness": 14.24785187959495,
+  "stopReason": "stroke complete",
+  "press1Peak": 171.8827184635676
+ },
+ {
+  "key": "valley5",
+  "name": "Valley / V pointing up (5°)",
+  "res": "standard",
+  "forceToThickness": {
+   "12": null,
+   "15": 3098.0054856150023,
+   "20": 1532.1146673151366,
+   "25": 936.4728527645403
+  },
+  "minLoadedThickness": 12.603373328682226,
+  "platenPeak": 3964.0404965744815,
+  "platenWork": 49.23436307363744,
+  "finalThickness": 12.775485472981831,
+  "stopReason": "stroke complete",
+  "press1Peak": 171.8827184635676
+ },
+ {
+  "key": "hinge",
+  "name": "Hinged clamshell (pivot past one end)",
+  "res": "standard",
+  "forceToThickness": {
+   "12": 7926.492052500343,
+   "15": 6729.873976940255,
+   "20": 4735.568177234752,
+   "25": 2890.1710122453514
+  },
+  "minLoadedThickness": 10.907207332560825,
+  "platenPeak": 8398.124833710515,
+  "platenWork": 79.40174296416623,
+  "finalThickness": 11.248776296912787,
+  "stopReason": "force limit",
+  "press1Peak": 171.8827184635676
+ }
+]
