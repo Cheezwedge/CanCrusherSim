@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Can Crush Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a materials-testing bench. Setup rail | specimen chamber | readouts. */
+:root {
+  --bg: #e9edf0;          /* brushed-aluminium ground */
+  --panel: #f7f9fa;
+  --panel-2: #eef2f4;
+  --ink: #141c22;
+  --ink-2: #4b5862;
+  --ink-3: #6e7a83;
+  --line: #d2d9de;
+  --grid: #dde3e7;
+  --accent: #c94f17;      /* hydraulic-press orange */
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e2d6;
+  --stage: #cfd6db;       /* 3D chamber background */
+  --good: #0f7a3a;
+  --warn: #9a6200;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; --series-8: #e34948;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101518; --panel: #171e22; --panel-2: #1d252a; --ink: #e6ecef; --ink-2: #a9b5bd; --ink-3: #85929b;
+    --line: #2b353b; --grid: #253036; --accent: #f07a3e; --accent-ink: #1a0e07; --accent-soft: #3a2418; --stage: #1c2429;
+    --good: #4cc27a; --warn: #e2a33a;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101518; --panel: #171e22; --panel-2: #1d252a; --ink: #e6ecef; --ink-2: #a9b5bd; --ink-3: #85929b;
+  --line: #2b353b; --grid: #253036; --accent: #f07a3e; --accent-ink: #1a0e07; --accent-soft: #3a2418; --stage: #1c2429;
+  --good: #4cc27a; --warn: #e2a33a;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.45 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 32px;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; margin: 0; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- top bar ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: 0.04em; }
+.brand p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.status { font: 500 12px var(--font-data); text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); display: inline-flex; align-items: center; gap: 8px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.status[data-state="running"]::before { background: var(--accent); animation: pulse 1s infinite alternate; }
+.status[data-state="done"]::before { background: var(--good); }
+.status[data-state="paused"]::before { background: var(--warn); }
+.status[data-state="error"]::before { background: #d03b3b; }
+@keyframes pulse { to { opacity: 0.25; } }
+
+/* ---------- bench grid ---------- */
+.bench { display: grid; gap: 14px; grid-template-columns: 290px minmax(0, 1fr) 400px; align-items: start; }
+@media (max-width: 1280px) { .bench { grid-template-columns: 280px minmax(0, 1fr); } .results { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+
+/* ---------- setup rail ---------- */
+.setup { display: flex; flex-direction: column; gap: 10px; }
+.group { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.group h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); display: flex; justify-content: space-between; align-items: baseline; }
+.group h2 small { font: 400 11px var(--font-data); letter-spacing: 0.02em; text-transform: none; color: var(--ink-3); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.field label, .lbl { font-size: 13px; color: var(--ink); }
+.field output, .val { font: 500 12px var(--font-data); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hint { font-size: 12px; color: var(--ink-3); margin: 0; }
+select { width: 100%; padding: 7px 8px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel-2); }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+input[type="number"] { width: 100%; padding: 6px 8px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel-2); font-family: var(--font-data); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel-2); }
+.seg button { border: 0; background: transparent; padding: 7px 4px; font-size: 13px; cursor: pointer; color: var(--ink-2); border-left: 1px solid var(--line); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); font-weight: 600; }
+.orient { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: center; }
+.orient svg { width: 72px; height: 72px; }
+.orient svg .can { fill: var(--panel-2); stroke: var(--ink-2); stroke-width: 1.5; }
+.orient svg .arrow { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.orient svg .arrowhead { fill: var(--accent); }
+.orient svg .floor { stroke: var(--ink-3); stroke-width: 2; }
+.tool-dims[hidden] { display: none !important; }
+.actions { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: var(--r); padding: 9px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover:not(:disabled) { border-color: var(--ink-3); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-family: var(--font-display); font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; padding: 8px 14px; }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); border-color: var(--accent); }
+.btn-small { padding: 5px 9px; font-size: 12.5px; }
+
+/* ---------- chamber (3D) ---------- */
+.chamber { position: sticky; top: 10px; height: min(84vh, 780px); min-height: 420px; overflow: hidden; background: var(--stage); }
+@media (max-width: 760px) { .chamber { position: relative; top: 0; height: 64vh; min-height: 360px; order: -1; } }
+.viewport { position: absolute; inset: 0; }
+.viewport canvas.gl { width: 100%; height: 100%; display: block; cursor: grab; }
+.viewport canvas.gl:active { cursor: grabbing; }
+.hud { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; justify-content: space-between; gap: 12px; pointer-events: none; flex-wrap: wrap; }
+.gauge { background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 12px; min-width: 150px; backdrop-filter: blur(4px); }
+.gauge .k { font: 500 11px var(--font-data); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); }
+.gauge .v { font: 600 34px/1.05 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.gauge .v small { font-size: 16px; color: var(--ink-2); margin-left: 3px; }
+.gauge .sub { font: 400 12px var(--font-data); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.gauge.side { min-width: 0; text-align: right; }
+.progress { height: 4px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.progress > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s linear; }
+.viewbar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.viewbar .seg { background: color-mix(in srgb, var(--panel) 90%, transparent); }
+.viewbar .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.legend-strain { display: flex; align-items: center; gap: 8px; font: 400 11px var(--font-data); color: var(--ink-2); background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); padding: 5px 8px; border-radius: var(--r); }
+.legend-strain i { display: block; width: 110px; height: 8px; border-radius: 2px; }
+.toast { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; max-width: 80%; text-align: center; }
+
+/* ---------- results ---------- */
+.results { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+@media (max-width: 1280px) and (min-width: 761px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tile { background: var(--panel); padding: 10px 12px; min-width: 0; }
+.tile .k { font-size: 12px; color: var(--ink-2); }
+.tile .v { font: 600 26px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.tile .v small { font-size: 14px; color: var(--ink-2); margin-left: 2px; font-weight: 500; }
+.tile .s { font: 400 11.5px var(--font-data); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.tile.key .v { color: var(--accent); }
+.panel-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px 0; flex-wrap: wrap; }
+.panel-h h2 { font-size: 17px; }
+.chart-wrap { position: relative; height: 270px; margin: 4px 6px 6px; }
+.chart-wrap canvas { position: absolute; inset: 0; }
+.chart-tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 8px; font: 12px var(--font-data); box-shadow: 0 4px 14px rgba(0,0,0,0.12); max-width: 240px; z-index: 2; }
+.tip-head { color: var(--ink-2); margin-bottom: 3px; }
+.tip-row { display: flex; align-items: center; gap: 6px; }
+.tip-row b { margin-left: auto; font-weight: 500; }
+.tip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.tip-sw, .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; display: inline-block; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 12px 10px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.lever { padding: 0 12px 12px; display: grid; gap: 10px; }
+.lever-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lever-out div { background: var(--panel-2); border-radius: var(--r); padding: 8px; min-width: 0; }
+.lever-out .k { font-size: 11.5px; color: var(--ink-2); }
+.lever-out .v { font: 600 20px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.compare-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 12px 0; }
+.table-scroll { overflow-x: auto; padding: 8px 0 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { padding: 6px 8px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--line); }
+th { font-weight: 500; color: var(--ink-2); font-size: 11.5px; position: sticky; top: 0; background: var(--panel); }
+td.name, th.name { text-align: left; white-space: normal; min-width: 150px; }
+td.name .sub { display: block; color: var(--ink-3); font-size: 11px; }
+td .chip { font: 500 10.5px var(--font-data); padding: 1px 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-left: 4px; white-space: nowrap; }
+tr.dim td { opacity: 0.45; }
+.icon-btn { border: 0; background: transparent; cursor: pointer; color: var(--ink-3); padding: 2px 4px; font-size: 14px; }
+.icon-btn:hover { color: var(--ink); }
+.empty { color: var(--ink-3); padding: 10px 12px; font-size: 13px; margin: 0; }
+
+/* ---------- notes ---------- */
+.notes { margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1000px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.notes article { padding: 14px 16px; }
+.notes h3 { font-size: 18px; margin-bottom: 6px; }
+.notes p, .notes li { color: var(--ink-2); max-width: 65ch; margin: 0 0 8px; }
+.notes ul { padding-left: 18px; margin: 0; }
+.mono { font-family: var(--font-data); font-size: 12.5px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg width="38" height="44" viewBox="0 0 38 44" aria-hidden="true">
+      <rect x="2" y="1" width="34" height="5" rx="1.5" fill="var(--accent)"/>
+      <path d="M8 10 h22 l2 4 v10 l-4 3 4 3 v6 l-2 4 H8 l-2 -4 v-6 l4 -3 -4 -3 V14 z" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M6 27 l4 -3 M32 27 l-4 -3 M6 30 l4 -3 M32 30 l-4 -3" stroke="var(--ink-2)" stroke-width="1.2"/>
+    </svg>
+    <div>
+      <h1>Can Crush Lab</h1>
+      <p>Elastic-plastic shell simulation of crushing an aluminum beverage can</p>
+    </div>
+  </div>
+  <div class="status" id="status" data-state="idle" role="status" aria-live="polite">Ready</div>
+</header>
+
+<main class="bench">
+  <!-- ======================= SETUP ======================= -->
+  <aside class="setup" aria-label="Test setup">
+    <section class="card group">
+      <h2>Can <small id="canMeta">13.9 g · 380 mL</small></h2>
+      <div class="field">
+        <label for="canPreset">Size</label>
+        <select id="canPreset"></select>
+      </div>
+      <div class="field">
+        <div class="field-top"><label for="wall">Side-wall thickness</label><output id="wallOut" for="wall"></output></div>
+        <input type="range" id="wall" min="0.075" max="0.140" step="0.001">
+      </div>
+      <div class="field">
+        <div class="field-top"><label for="imperf">Shape imperfection</label><output id="imperfOut" for="imperf"></output></div>
+        <input type="range" id="imperf" min="0" max="0.30" step="0.01">
+        <p class="hint">Real cans are never perfectly round. Bigger waviness makes the wall buckle sooner.</p>
+      </div>
+      <div class="field">
+        <div class="field-top"><label for="dent">Pre-dent depth</label><output id="dentOut" for="dent"></output></div>
+        <input type="range" id="dent" min="0" max="8" step="0.5">
+        <p class="hint">Before crushing, a Ø10 mm steel ball presses this far into the wall, then backs out.</p>
+      </div>
+      <div class="two" id="dentOpts">
+        <div class="field">
+          <div class="field-top"><label for="dentH">Dent height</label><output id="dentHOut" for="dentH"></output></div>
+          <input type="range" id="dentH" min="5" max="95" step="5">
+        </div>
+        <div class="field">
+          <label for="dentFace">Dent faces</label>
+          <select id="dentFace"><option value="side">Sideways</option><option value="crusher">Crusher</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-top"><label for="seed">Random can #</label><output class="val">same # = same can</output></div>
+        <input type="number" id="seed" min="1" max="9999" step="1">
+      </div>
+    </section>
+
+    <section class="card group">
+      <h2>Crush direction</h2>
+      <div class="seg" role="group" aria-label="Direction presets">
+        <button type="button" data-tilt="0">Top-down</button>
+        <button type="button" data-tilt="15">Tilted 15°</button>
+        <button type="button" data-tilt="90">Side</button>
+      </div>
+      <div class="orient">
+        <svg viewBox="0 0 72 72" aria-hidden="true">
+          <line class="floor" x1="6" y1="64" x2="66" y2="64"/>
+          <g id="orientCan"><rect class="can" x="-11" y="-20" width="22" height="40" rx="3"/><rect x="-8" y="-22" width="16" height="3" rx="1" fill="var(--ink-2)"/></g>
+          <path class="arrow" d="M36 4 V16"/><path class="arrowhead" d="M31 14 L36 21 L41 14 Z"/>
+        </svg>
+        <div class="field">
+          <div class="field-top"><label for="tilt">Can tilt from upright</label><output id="tiltOut" for="tilt"></output></div>
+          <input type="range" id="tilt" min="0" max="90" step="1">
+          <p class="hint">0° crushes the can end-on; 90° lays it on its side.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card group">
+      <h2>Crusher</h2>
+      <div class="seg" role="group" aria-label="Crusher shape" id="toolSeg">
+        <button type="button" data-tool="plate">Flat plate</button>
+        <button type="button" data-tool="bar">Round bar</button>
+        <button type="button" data-tool="punch">Round punch</button>
+      </div>
+      <div class="tool-dims two" data-for="plate">
+        <div class="field"><div class="field-top"><label for="plateW">Width</label><output id="plateWOut" for="plateW"></output></div><input type="range" id="plateW" min="10" max="160" step="5"></div>
+        <div class="field"><div class="field-top"><label for="plateL">Depth</label><output id="plateLOut" for="plateL"></output></div><input type="range" id="plateL" min="10" max="160" step="5"></div>
+      </div>
+      <div class="tool-dims two" data-for="bar">
+        <div class="field"><div class="field-top"><label for="barD">Diameter</label><output id="barDOut" for="barD"></output></div><input type="range" id="barD" min="6" max="60" step="1"></div>
+        <div class="field"><div class="field-top"><label for="barL">Length</label><output id="barLOut" for="barL"></output></div><input type="range" id="barL" min="20" max="160" step="5"></div>
+      </div>
+      <div class="tool-dims two" data-for="punch">
+        <div class="field"><div class="field-top"><label for="punchD">Diameter</label><output id="punchDOut" for="punchD"></output></div><input type="range" id="punchD" min="10" max="90" step="1"></div>
+        <div class="field"><div class="field-top"><label for="edgeR">Edge radius</label><output id="edgeROut" for="edgeR"></output></div><input type="range" id="edgeR" min="1" max="10" step="0.5"></div>
+      </div>
+      <div class="field"><div class="field-top"><label for="yaw">Rotate crusher</label><output id="yawOut" for="yaw"></output></div><input type="range" id="yaw" min="0" max="90" step="5"></div>
+      <div class="two">
+        <div class="field"><div class="field-top"><label for="offX">Shift across</label><output id="offXOut" for="offX"></output></div><input type="range" id="offX" min="-40" max="40" step="1"></div>
+        <div class="field"><div class="field-top"><label for="offZ">Shift along</label><output id="offZOut" for="offZ"></output></div><input type="range" id="offZ" min="-60" max="60" step="1"></div>
+      </div>
+      <div class="field"><div class="field-top"><label for="mu">Friction (steel on can)</label><output id="muOut" for="mu"></output></div><input type="range" id="mu" min="0" max="0.6" step="0.05"></div>
+    </section>
+
+    <section class="card group">
+      <h2>Run</h2>
+      <div class="field"><div class="field-top"><label for="gap">Stop when crusher is</label><output id="gapOut" for="gap"></output></div><input type="range" id="gap" min="6" max="60" step="1"><p class="hint">Height above the bed where the crusher stops, then backs off.</p></div>
+      <div class="field">
+        <label for="res">Mesh resolution</label>
+        <select id="res">
+          <option value="coarse">Quick look (~1/2 min, forces ~25% high)</option>
+          <option value="standard">Standard (~1–2 min)</option>
+          <option value="fine">Fine (~3–5 min, most accurate)</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="crushBtn">Crush</button>
+        <button type="button" class="btn" id="pauseBtn" disabled>Pause</button>
+        <button type="button" class="btn" id="resetBtn">Reset</button>
+      </div>
+      <p class="hint mono" id="simInfo"></p>
+    </section>
+  </aside>
+
+  <!-- ======================= CHAMBER ======================= -->
+  <section class="card chamber" aria-label="3D view of the crush test">
+    <div class="viewport" id="viewport"></div>
+    <div class="hud">
+      <div class="gauge">
+        <div class="k">Crusher force</div>
+        <div class="v" id="hudForce">0<small>N</small></div>
+        <div class="sub" id="hudForceAlt">0 lbf · 0 kgf</div>
+        <div class="progress" aria-hidden="true"><i id="hudProg"></i></div>
+      </div>
+      <div class="gauge side">
+        <div class="k">Travel</div>
+        <div class="v" id="hudTravel">0.0<small>mm</small></div>
+        <div class="sub" id="hudHeight">can height —</div>
+      </div>
+    </div>
+    <div class="viewbar">
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Surface colour">
+          <button type="button" data-color="paint">Painted</button>
+          <button type="button" data-color="strain">Plastic strain</button>
+        </div>
+        <button type="button" class="btn btn-small" id="cutBtn" aria-pressed="false">Cut away</button>
+        <button type="button" class="btn btn-small" id="viewBtn">Reset view</button>
+      </div>
+      <div class="legend-strain" id="strainLegend" hidden><span>0%</span><i id="strainRamp"></i><span id="strainMax">8%+</span></div>
+    </div>
+    <div class="toast" id="glError" hidden>3D view unavailable in this browser. The simulation and charts still work.</div>
+  </section>
+
+  <!-- ======================= RESULTS ======================= -->
+  <section class="results" aria-label="Results">
+    <div class="tiles">
+      <div class="tile key"><div class="k">Force to start crushing</div><div class="v" id="tStart">—</div><div class="s" id="tStartS">first buckle</div></div>
+      <div class="tile"><div class="k">Peak force</div><div class="v" id="tPeak">—</div><div class="s" id="tPeakS">&nbsp;</div></div>
+      <div class="tile"><div class="k">Average force</div><div class="v" id="tMean">—</div><div class="s" id="tMeanS">over the stroke</div></div>
+      <div class="tile"><div class="k">Energy to crush</div><div class="v" id="tWork">—</div><div class="s" id="tWorkS">&nbsp;</div></div>
+      <div class="tile"><div class="k">Crushed height</div><div class="v" id="tHeight">—</div><div class="s" id="tHeightS">&nbsp;</div></div>
+      <div class="tile"><div class="k">Volume squeezed out</div><div class="v" id="tVol">—</div><div class="s" id="tVolS">&nbsp;</div></div>
+    </div>
+
+    <div class="card">
+      <div class="panel-h">
+        <h2>Force vs travel</h2>
+        <div class="seg" role="group" aria-label="Force unit" id="unitSeg">
+          <button type="button" data-unit="N">N</button><button type="button" data-unit="lbf">lbf</button><button type="button" data-unit="kgf">kgf</button>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chartWrap"><canvas aria-label="Force versus crusher travel chart" role="img"></canvas><div class="chart-tip" hidden></div></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <div class="panel-h"><h2>Lever sizing</h2></div>
+      <div class="lever">
+        <div class="two">
+          <div class="field"><div class="field-top"><label for="ratio">Lever ratio</label><output id="ratioOut" for="ratio"></output></div><input type="range" id="ratio" min="1" max="15" step="0.5"></div>
+          <div class="field"><div class="field-top"><label for="handF">Comfortable push</label><output id="handFOut" for="handF"></output></div><input type="range" id="handF" min="50" max="400" step="10"></div>
+        </div>
+        <div class="lever-out">
+          <div><div class="k">Hand force at peak</div><div class="v" id="lvHand">—</div></div>
+          <div><div class="k">Handle travel</div><div class="v" id="lvTravel">—</div></div>
+          <div><div class="k">Ratio you need</div><div class="v" id="lvNeed">—</div></div>
+        </div>
+        <p class="hint" id="lvNote">Lever ratio = handle length ÷ distance from the pivot to the can. A lever lowers the force but not the energy: your hand travels farther by the same ratio.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="panel-h"><h2>Compare strategies</h2></div>
+      <div class="compare-actions">
+        <button type="button" class="btn btn-small" id="saveBtn" disabled>Add this run</button>
+        <button type="button" class="btn btn-small" id="sweepBtn">Run 6 strategies</button>
+        <button type="button" class="btn btn-small" id="clearBtn">Clear my runs</button>
+      </div>
+      <div class="table-scroll">
+        <table id="cmpTable">
+          <thead><tr><th class="name">Setup</th><th>Start</th><th>Peak</th><th>Average</th><th>Energy</th><th>Height</th><th>Hand @ ratio</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint" style="padding: 0 12px 10px" id="cmpNote">Rows marked "reference" were computed in advance with the standard mesh for a 12 oz can; run your own to update them.</p>
+    </div>
+  </section>
+</main>
+
+<section class="notes" aria-label="How the simulation works">
+  <article class="card">
+    <h3>What is being simulated</h3>
+    <p>The can is a thin aluminium shell: 0.1 mm side wall, thicker neck and base, a stiff double seam and a 5182-alloy lid, about 3,000–6,000 nodes. Each step computes in-plane stretching (von Mises plasticity with hardening) and bending (curvature from every edge's fold angle, with the fully plastic moment σ<sub>y</sub>t²/4). The crusher and bed are rigid steel with friction, and folds push on each other through self-contact.</p>
+  </article>
+  <article class="card">
+    <h3>Reading the curve</h3>
+    <ul>
+      <li><b>Start force</b> is the first peak, where the wall buckles. That is what your crusher must overcome.</li>
+      <li><b>Average force × travel</b> is the energy. A lever cuts the force but not the energy.</li>
+      <li>The steep rise at the end is the folds stacking solid. Stop the stroke before it.</li>
+    </ul>
+  </article>
+  <article class="card">
+    <h3>Accuracy</h3>
+    <p>Checked against plate-bending theory (within 1–9%), ring crush theory (elastic within 2%, plastic collapse within 8%), the classical buckling load of the bare wall (within 10%), and the ~1–1.5 kN axial load can makers design to. Fold patterns are chaotic, so expect ±10–15% between runs, just as with real cans. Change the random can # to see the spread.</p>
+  </article>
+</section>
+
+<script type="module" src="./src/ui/app.js"></script>
+</body>
+</html>

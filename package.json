@@ -1,0 +1,13 @@
+{
+  "name": "can-crusher-sim",
+  "version": "1.0.0",
+  "description": "3D elastic-plastic thin-shell simulator for crushing aluminum beverage cans",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "validate": "node tools/validate.mjs"
+  },
+  "license": "MIT"
+}
