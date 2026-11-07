@@ -393,10 +393,22 @@ export class CrushView {
     body.receiveShadow = true;
     g.add(body);
     // ram (press rod) above the tool
-    const ram = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 400, 32), this.ramMat);
-    ram.position.y = top + 200;
-    ram.castShadow = true;
-    g.add(ram);
+    const rr = tool.ramDiameter !== undefined ? (tool.ramDiameter * 1000) / 2 : 9;
+    if (rr > 0) {
+      const ram = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, 400, 32), this.ramMat);
+      ram.position.y = top + 200;
+      ram.castShadow = true;
+      g.add(ram);
+    } else if (tool.kind === 'plate' || tool.kind === 'bar') {
+      // driven from its ends: two posts at the far ends of the plate / bar
+      const halfX = tool.kind === 'plate' ? (tool.width * 1000) / 2 - 6 : (tool.length * 1000) / 2 - 6;
+      for (const sx of [-1, 1]) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 400, 24), this.ramMat);
+        post.position.set(sx * halfX, top + 200, 0);
+        post.castShadow = true;
+        g.add(post);
+      }
+    }
     g.rotation.y = tool.yaw || 0;
     g.position.set(pos.x, pos.y, pos.z);
     this.requestRender();

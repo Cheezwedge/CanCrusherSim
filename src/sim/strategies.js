@@ -11,16 +11,16 @@ export const STRATEGIES = [
 
 export const UI_DEFAULTS = {
   canPreset: 'std355', wall: 0.097, imperf: 0.08, dent: 0, dentH: 50, dentFace: 'side', seed: 7,
-  tilt: 0, tool: 'plate', plateW: 100, plateL: 100, barD: 20, barL: 120, punchD: 40, edgeR: 3,
-  yaw: 0, offX: 0, offZ: 0, mu: 0.25, gap: 25, res: 'standard',
+  tilt: 0, tool: 'plate', plateW: 100, plateL: 100, plateT: 20, barD: 20, barL: 120, punchD: 40, punchH: 30, edgeR: 3,
+  yaw: 0, offX: 0, offZ: 0, mu: 0.25, gap: 25, res: 'standard', rod: 18,
 };
 
 /** Convert UI settings (mm, degrees) into physics parameters (SI units). */
 export function uiToParams(u) {
-  const tool = { type: u.tool, yawDeg: u.yaw, offsetX: u.offX / 1000, offsetZ: u.offZ / 1000 };
-  if (u.tool === 'plate') Object.assign(tool, { width: u.plateW / 1000, length: u.plateL / 1000, edgeRadius: 0.003 });
+  const tool = { type: u.tool, yawDeg: u.yaw, offsetX: u.offX / 1000, offsetZ: u.offZ / 1000, ramDiameter: (u.rod ?? 18) / 1000 };
+  if (u.tool === 'plate') Object.assign(tool, { width: u.plateW / 1000, length: u.plateL / 1000, thickness: u.plateT / 1000, edgeRadius: 0.003 });
   if (u.tool === 'bar') Object.assign(tool, { diameter: u.barD / 1000, length: u.barL / 1000 });
-  if (u.tool === 'punch') Object.assign(tool, { diameter: u.punchD / 1000, edgeRadius: u.edgeR / 1000 });
+  if (u.tool === 'punch') Object.assign(tool, { diameter: u.punchD / 1000, height: u.punchH / 1000, edgeRadius: u.edgeR / 1000 });
   const dentAz = u.dentFace === 'crusher' && u.tilt > 45 ? 90 : 0;
   return {
     can: u.canPreset,

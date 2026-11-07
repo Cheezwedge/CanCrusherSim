@@ -34,7 +34,7 @@ node tools/make-reference.mjs                                # regenerates the b
 |---|---|
 | **Can** | Size (12 oz standard, 16 oz tall, 12 oz sleek, 8.4 oz slim) and side-wall thickness. **Shape imperfection** sets how wavy the can is; real cans are never perfectly round, which is why they buckle below the theoretical load. **Pre-dent** presses a Ø10 mm steel ball into the wall before crushing. **Random can #** picks a different (reproducible) imperfection pattern. |
 | **Crush direction** | Can tilt from upright: 0° crushes end-on (top-down), 90° lays the can on its side. Anything in between is an oblique crush. |
-| **Crusher** | Flat plate (width × depth), round bar (diameter × length) or round punch (diameter, edge radius). You can rotate it about the vertical axis and shift it off-centre. Also sets steel-on-can friction. |
+| **Crusher** | Flat plate (width × depth × **thickness**), round bar (diameter × length) or round punch (diameter, edge radius, **height**). You can rotate it about the vertical axis and shift it off-centre. **Press rod:** the crusher is either driven by a central rod (Ø10, Ø18 or Ø30 mm) or from its ends with nothing above its middle. Plate thickness and rod both matter once metal rises past the crusher's edges: it can fold over the top of a thin plate, and the rod is solid, so folded metal lands on it. Also sets steel-on-can friction. |
 | **Run** | Where the crusher stops (height above the bed) and the mesh resolution. *Quick look* is fast but reads ~25% high on forces. *Standard* is the default. *Fine* is the most accurate and slowest. |
 
 During a run the 3D view can show the painted can or the **plastic strain** (where the metal has permanently yielded). **Cut away** removes the front half so you can see folds stacking inside.
@@ -63,6 +63,7 @@ What this means for a low-effort crusher:
 5. **A small punch on the lid doesn't help.** It dishes the lid first and then crushes the can at about the same force, and leaves it taller.
 6. **A lever trades force for distance, not energy.** A top-down crush takes about 45–70 J, roughly lifting a 5–7 kg bag by 1 m. With a 6:1 lever the tilted-can crush needs about 270 N at the handle at its peak, and only 75 N to start. The straight crush needs about 440 N at the peak. For a comfortable push of about 150 N, aim for a lever of about 11:1 with a tilted cradle, or about 18:1 for a square one.
 7. **A pre-dent helped less than expected in this model** (see limitations). The tilt or off-centre load is the reliable trick.
+8. **For a crusher narrower than the can, keep it thin.** Test: can on its side, 50 mm-wide plate across the middle, no centre rod, crushed to 6 mm, quick mesh. A 3 mm plate lets the can's ends fold up and over its top: 780 N peak, 16 J. A 30 mm-thick plate traps the ends against its sides, so they have to be crushed instead: 2,020 N peak, 28 J. A central rod also gets in the way of the fold.
 
 ## The physics model
 
@@ -128,6 +129,8 @@ More checks:
 - **No tearing:** aluminum can crack at very tight folds; the model doesn't fracture.
 - **Only empty, open cans:** a sealed full can is held up by its internal pressure and behaves completely differently.
 - **Contact thickness:** self-contact uses a 0.5 mm thickness for numerical robustness, so a fully stacked can ends up a few mm taller than a real one.
+- **Sharp tool edges:** a plate's edges are rounded to at most half its thickness. Contact is checked at nodes, edge midpoints and triangle centres, which stops edges down to about 2 mm from cutting through the 3–4 mm mesh. Sharper edges (knife-like) are not modelled.
+- **End posts are visual only:** when the crusher is driven from its ends, the end posts are drawn but not simulated. They sit outside the can for normal plate sizes.
 
 ## Project layout
 

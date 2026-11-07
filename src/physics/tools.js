@@ -37,6 +37,32 @@ class ToolBase {
     n[0] = this.cy * nx + this.sy * nz;
     n[2] = -this.sy * nx + this.cy * nz;
   }
+  /**
+   * Press rod: a vertical round rod of radius ramR rising from the top of the
+   * tool body (ramBase above py). It is part of the rigid tool, so metal that
+   * folds up and over a thin plate lands on it instead of passing through.
+   * Takes local coordinates (y relative to py) and the body's distance/normal
+   * (normal still in local axes); returns the union distance.
+   */
+  _ram(lx, lyRef, lz, d, n) {
+    const r = this.ramR;
+    if (!r) return d;
+    const rho = Math.sqrt(lx * lx + lz * lz);
+    const below = this.ramBase - lyRef;
+    let dr, nx = 0, ny = 0, nz = 0;
+    if (below > 0) {
+      if (rho > r) {
+        const a = rho - r;
+        dr = Math.sqrt(a * a + below * below);
+        nx = (a / dr) * (lx / rho); nz = (a / dr) * (lz / rho); ny = -below / dr;
+      } else { dr = below; ny = -1; }
+    } else {
+      dr = rho - r;
+      if (rho > 1e-12) { nx = lx / rho; nz = lz / rho; } else nx = 1;
+    }
+    if (dr < d) { n[0] = nx; n[1] = ny; n[2] = nz; return dr; }
+    return d;
+  }
   /** Lowest point of the tool (y) relative to its reference position. */
   get bottomOffset() { return 0; }
   describe() { return { kind: this.kind }; }
@@ -99,6 +125,8 @@ export class PlateTool extends ToolBase {
     this.hz = opts.length / 2;
     this.hy = opts.thickness ? opts.thickness / 2 : 0.010;
     this.r = Math.min(opts.edgeRadius ?? 0.002, this.hx * 0.999, this.hz * 0.999, this.hy * 0.999);
+    this.ramR = Math.max(0, (opts.ramDiameter ?? 0.018) / 2);
+    this.ramBase = 2 * this.hy;
   }
   sdf(x, y, z, n) {
     this._local(x, y, z, _l);
@@ -121,11 +149,12 @@ export class PlateTool extends ToolBase {
       else if (qy >= qz) { d = qy - r; n[1] = ly < 0 ? -1 : 1; }
       else { d = qz - r; n[2] = lz < 0 ? -1 : 1; }
     }
+    d = this._ram(lx, _l[1], lz, d, n);
     this._toWorldN(n);
     return d;
   }
   describe() {
-    return { kind: 'plate', width: this.hx * 2, length: this.hz * 2, thickness: this.hy * 2, edgeRadius: this.r, yaw: this.yaw };
+    return { kind: 'plate', width: this.hx * 2, length: this.hz * 2, thickness: this.hy * 2, edgeRadius: this.r, yaw: this.yaw, ramDiameter: this.ramR * 2 };
   }
 }
 
@@ -138,6 +167,8 @@ export class BarTool extends ToolBase {
     super('bar', opts);
     this.rad = opts.diameter / 2;
     this.hl = Math.max(0, opts.length / 2 - this.rad);
+    this.ramR = Math.min((opts.ramDiameter ?? 0.018) / 2, this.rad * 0.9);
+    this.ramBase = 2 * this.rad;
   }
   sdf(x, y, z, n) {
     this._local(x, y, z, _l);
@@ -147,8 +178,9 @@ export class BarTool extends ToolBase {
     const len = Math.sqrt(dx * dx + ly * ly + lz * lz);
     if (len < 1e-12) { n[0] = 0; n[1] = -1; n[2] = 0; return -this.rad; }
     n[0] = dx / len; n[1] = ly / len; n[2] = lz / len;
+    const d = this._ram(lx, _l[1], lz, len - this.rad, n);
     this._toWorldN(n);
-    return len - this.rad;
+    return d;
   }
   describe() { return { kind: 'bar', diameter: this.rad * 2, length: (this.hl + this.rad) * 2, yaw: this.yaw }; }
 }
@@ -163,6 +195,8 @@ export class PunchTool extends ToolBase {
     this.R = opts.diameter / 2;
     this.hh = opts.height ? opts.height / 2 : 0.015;
     this.r = Math.min(opts.edgeRadius ?? 0.0015, this.R * 0.999, this.hh * 0.999);
+    this.ramR = Math.min((opts.ramDiameter ?? 0.018) / 2, this.R);
+    this.ramBase = 2 * this.hh;
   }
   sdf(x, y, z, n) {
     this._local(x, y, z, _l);
@@ -179,10 +213,11 @@ export class PunchTool extends ToolBase {
     else { d = qy - r; nr = 0; ny = ly < 0 ? -1 : 1; }
     if (rho > 1e-12) { n[0] = (nr * lx) / rho; n[2] = (nr * lz) / rho; } else { n[0] = 0; n[2] = 0; }
     n[1] = ny;
+    d = this._ram(lx, _l[1], lz, d, n);
     this._toWorldN(n);
     return d;
   }
-  describe() { return { kind: 'punch', diameter: this.R * 2, height: this.hh * 2, edgeRadius: this.r }; }
+  describe() { return { kind: 'punch', diameter: this.R * 2, height: this.hh * 2, edgeRadius: this.r, ramDiameter: this.ramR * 2 }; }
 }
 
 export function makeTool(spec) {

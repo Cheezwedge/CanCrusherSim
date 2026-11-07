@@ -621,6 +621,44 @@ export class ShellSolver {
         Fx -= cx; Fy -= cy; Fz -= cz;
         count++;
       }
+      // Extra sample points (edge midpoints and triangle centres) for shaped
+      // tools, so a thin plate edge, a narrow bar or the press rod cannot slip
+      // between the nodes of the 3-4 mm mesh. Normal force only.
+      if (!isPlane && tool.kind !== 'wall') {
+        const hIdx = this.hIdx, H = this.H, tris = this.tris, T = this.T;
+        for (let pass = 0; pass < 2; pass++) {
+          const M = pass === 0 ? H : T;
+          const k = pass === 0 ? 2 : 3;
+          const w = 1 / k;
+          for (let s = 0; s < M; s++) {
+            const i0 = pass === 0 ? hIdx[4 * s] : tris[3 * s];
+            const i1 = pass === 0 ? hIdx[4 * s + 1] : tris[3 * s + 1];
+            const i2 = pass === 0 ? i1 : tris[3 * s + 2];
+            const a = 3 * i0, b = 3 * i1, c = 3 * i2;
+            const sy = pass === 0 ? 0.5 * (x[a + 1] + x[b + 1]) : (x[a + 1] + x[b + 1] + x[c + 1]) / 3;
+            if (cull && sy < yLim) continue;
+            const sx = pass === 0 ? 0.5 * (x[a] + x[b]) : (x[a] + x[b] + x[c]) / 3;
+            const sz = pass === 0 ? 0.5 * (x[a + 2] + x[b + 2]) : (x[a + 2] + x[b + 2] + x[c + 2]) / 3;
+            const off = pass === 0 ? 0.25 * (nodeThick[i0] + nodeThick[i1]) : (nodeThick[i0] + nodeThick[i1] + nodeThick[i2]) / 6;
+            const dist = tool.sdf(sx, sy, sz, n);
+            const pen = off - dist;
+            if (pen <= 0) continue;
+            const ms = pass === 0 ? 0.5 * (m[i0] + m[i1]) : (m[i0] + m[i1] + m[i2]) / 3;
+            const kc = kap * ms * invDt2 * w;
+            const cc = 2 * zeta * Math.sqrt(kap) * ms * w / dt;
+            let vn;
+            if (pass === 0) vn = (0.5 * (v[a] + v[b]) - tool.vx) * n[0] + (0.5 * (v[a + 1] + v[b + 1]) - tool.vy) * n[1] + (0.5 * (v[a + 2] + v[b + 2]) - tool.vz) * n[2];
+            else vn = ((v[a] + v[b] + v[c]) / 3 - tool.vx) * n[0] + ((v[a + 1] + v[b + 1] + v[c + 1]) / 3 - tool.vy) * n[1] + ((v[a + 2] + v[b + 2] + v[c + 2]) / 3 - tool.vz) * n[2];
+            let fn = kc * pen - cc * vn;
+            if (fn <= 0) continue;
+            const fx = fn * n[0] * w, fy = fn * n[1] * w, fz = fn * n[2] * w;
+            f[a] += fx; f[a + 1] += fy; f[a + 2] += fz;
+            f[b] += fx; f[b + 1] += fy; f[b + 2] += fz;
+            if (pass === 1) { f[c] += fx; f[c + 1] += fy; f[c + 2] += fz; }
+            Fx -= fn * n[0]; Fy -= fn * n[1]; Fz -= fn * n[2];
+          }
+        }
+      }
       tool.fx = Fx; tool.fy = Fy; tool.fz = Fz; tool.contactCount = count;
     }
   }

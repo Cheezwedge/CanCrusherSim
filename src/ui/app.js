@@ -25,6 +25,7 @@ const RANGE_FMT = {
   wall: (v) => `${(+v).toFixed(3)} mm`, imperf: (v) => `${(+v).toFixed(2)} mm`, dent: (v) => (+v === 0 ? 'none' : `${(+v).toFixed(2)} mm`),
   dentH: (v) => `${v}% up`, tilt: (v) => `${v}°`, plateW: (v) => `${v} mm`, plateL: (v) => `${v} mm`, barD: (v) => `Ø${v} mm`,
   barL: (v) => `${v} mm`, punchD: (v) => `Ø${v} mm`, edgeR: (v) => `${(+v).toFixed(1)} mm`, yaw: (v) => `${v}°`,
+  plateT: (v) => `${v} mm`, punchH: (v) => `${v} mm`,
   offX: (v) => `${v} mm`, offZ: (v) => `${v} mm`, mu: (v) => `μ ${(+v).toFixed(2)}`, gap: (v) => `${v} mm`,
   ratio: (v) => `${(+v).toFixed(1)} : 1`, handF: (v) => `${v} N`,
 };
@@ -61,6 +62,8 @@ function initControls() {
   $('dentFace').addEventListener('change', (e) => { ui.dentFace = e.target.value; setupChanged(); });
   $('seed').value = ui.seed;
   $('seed').addEventListener('change', (e) => { ui.seed = Math.max(1, Math.round(+e.target.value || 1)); e.target.value = ui.seed; setupChanged(); });
+  $('rod').value = String(ui.rod);
+  $('rod').addEventListener('change', (e) => { ui.rod = +e.target.value; setupChanged(); });
   $('res').value = ui.res;
   $('res').addEventListener('change', (e) => { ui.res = e.target.value; setupChanged(); });
 
@@ -135,8 +138,11 @@ export function describeParams(p) {
     ? (t.width >= 0.07 && t.length >= 0.07 ? 'full plate' : `plate ${Math.round(t.width * 1000)}×${Math.round(t.length * 1000)}`)
     : t.type === 'bar' ? `Ø${Math.round(t.diameter * 1000)} bar` : `Ø${Math.round(t.diameter * 1000)} punch`;
   const extras = [];
+  if (t.type === 'plate' && t.thickness && Math.abs(t.thickness - 0.02) > 1e-4) extras.push(`${Math.round(t.thickness * 1000)} mm thick`);
+  if (t.type === 'punch' && t.height && Math.abs(t.height - 0.03) > 1e-4) extras.push(`${Math.round(t.height * 1000)} mm tall`);
   if (p.dent && p.dent.depth > 0) extras.push(`${p.dent.depth} mm dent`);
   if (t.yawDeg) extras.push(`rotated ${t.yawDeg}°`);
+  if (t.ramDiameter === 0) extras.push('no centre rod');
   if (t.offsetX || t.offsetZ) extras.push('off-centre');
   return `${dir}, ${tool}${extras.length ? ' · ' + extras.join(', ') : ''}`;
 }

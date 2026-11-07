@@ -277,6 +277,11 @@ tr.dim td { opacity: 0.45; }
         <div class="field"><div class="field-top"><label for="plateW">Width</label><output id="plateWOut" for="plateW"></output></div><input type="range" id="plateW" min="10" max="160" step="5"></div>
         <div class="field"><div class="field-top"><label for="plateL">Depth</label><output id="plateLOut" for="plateL"></output></div><input type="range" id="plateL" min="10" max="160" step="5"></div>
       </div>
+      <div class="tool-dims field" data-for="plate">
+        <div class="field-top"><label for="plateT">Plate thickness</label><output id="plateTOut" for="plateT"></output></div>
+        <input type="range" id="plateT" min="2" max="40" step="1">
+        <p class="hint">On a thin plate, metal that rises past its edges can fold over the top; a thick plate traps it against its sides.</p>
+      </div>
       <div class="tool-dims two" data-for="bar">
         <div class="field"><div class="field-top"><label for="barD">Diameter</label><output id="barDOut" for="barD"></output></div><input type="range" id="barD" min="6" max="60" step="1"></div>
         <div class="field"><div class="field-top"><label for="barL">Length</label><output id="barLOut" for="barL"></output></div><input type="range" id="barL" min="20" max="160" step="5"></div>
@@ -284,6 +289,19 @@ tr.dim td { opacity: 0.45; }
       <div class="tool-dims two" data-for="punch">
         <div class="field"><div class="field-top"><label for="punchD">Diameter</label><output id="punchDOut" for="punchD"></output></div><input type="range" id="punchD" min="10" max="90" step="1"></div>
         <div class="field"><div class="field-top"><label for="edgeR">Edge radius</label><output id="edgeROut" for="edgeR"></output></div><input type="range" id="edgeR" min="1" max="10" step="0.5"></div>
+      </div>
+      <div class="tool-dims field" data-for="punch">
+        <div class="field-top"><label for="punchH">Punch height</label><output id="punchHOut" for="punchH"></output></div>
+        <input type="range" id="punchH" min="3" max="40" step="1">
+      </div>
+      <div class="field">
+        <label for="rod">Press rod above the crusher</label>
+        <select id="rod">
+          <option value="18">Ø18 mm rod in the centre</option>
+          <option value="30">Ø30 mm rod in the centre</option>
+          <option value="10">Ø10 mm rod in the centre</option>
+          <option value="0">None (driven from its ends)</option>
+        </select>
       </div>
       <div class="field"><div class="field-top"><label for="yaw">Rotate crusher</label><output id="yawOut" for="yaw"></output></div><input type="range" id="yaw" min="0" max="90" step="5"></div>
       <div class="two">
