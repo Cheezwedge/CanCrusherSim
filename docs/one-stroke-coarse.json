@@ -1,0 +1,62 @@
+[
+ {
+  "key": "two-press",
+  "name": "Two presses: Ø20 bar, retract, flat platen",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 3532.2725667656227,
+   "15": 2398.154918085736,
+   "20": 1621.669727914813,
+   "25": 1239.7090436083909
+  },
+  "totalWork": 79.83340644242944,
+  "finalThickness": 8.059145778555667,
+  "strokes": 2,
+  "springMax": null
+ },
+ {
+  "key": "combo-p30",
+  "name": "One stroke: bar 30 mm below slotted platen, spring 300→450 N",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": 6698.685166260023,
+   "15": 4443.392053223238,
+   "20": 3386.937296120655,
+   "25": 2419.343752214158
+  },
+  "totalWork": 130.95516598493123,
+  "finalThickness": 11.369502589092011,
+  "strokes": 1,
+  "springMax": 1636.2393630968484
+ },
+ {
+  "key": "combo-p45",
+  "name": "One stroke: bar 45 mm below slotted platen, spring 300→450 N",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": null,
+   "15": 3390.5555542225643,
+   "20": 3116.9006954257698,
+   "25": 2614.30395753067
+  },
+  "totalWork": 108.47847949403634,
+  "finalThickness": 12.910764522385174,
+  "strokes": 1,
+  "springMax": 2150.1868953345042
+ },
+ {
+  "key": "combo-p45-soft",
+  "name": "One stroke: bar 45 mm below, spring 200→300 N",
+  "res": "coarse",
+  "forceToThickness": {
+   "12": null,
+   "15": 5385.8628258916815,
+   "20": 3562.0791985998353,
+   "25": 2753.51946832412
+  },
+  "totalWork": 112.90098193604072,
+  "finalThickness": 13.93255991085891,
+  "strokes": 1,
+  "springMax": 2199.2036702157966
+ }
+]

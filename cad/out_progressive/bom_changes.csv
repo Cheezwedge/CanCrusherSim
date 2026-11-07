@@ -1,0 +1,7 @@
+item,qty,notes
+Everything in out/bom.csv except the single cradle,,"same frame, lever and hardware"
+Base plate,1,280 × 330 × 18 mm (dxf/base_plate.dxf)
+Ø20 steel rod (crease bar),1,130 mm long
+"Printed: cradle_station1, pad_station2 (instead of cradle)",1 each,stl/
+Printed: crosshead with front arm (replaces crosshead),1,stl/crosshead.stl
+Printed: bar_head and platen_head are both fitted permanently,1 each,

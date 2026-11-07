@@ -40,6 +40,7 @@ PARAMS = {
     "tool_low_gap": 8.0,    # tool face above the cradle at the bottom of the stroke
     "head_drop": 70.0,      # tool face to crosshead underside (clears the folded can)
     "xh_depth": 50.0, "xh_h": 30.0, "xh_wall": 8.0,
+    "pin_rise": 15.0,       # crosshead pin above the crosshead underside (> xh_h adds pin ears)
     "bridge_h": 40.0, "bridge_gap": 6.0,
     # --- linkage ---
     "crank_r": 48.0,        # pivot to crank pin
@@ -65,7 +66,8 @@ def derive(p):
     d["z_bed"] = p["cradle_t"]
     d["z_face_low"] = d["z_bed"] + p["tool_low_gap"]
     d["z_xh_bot_low"] = d["z_face_low"] + p["head_drop"]
-    d["z_xpin_low"] = d["z_xh_bot_low"] + p["xh_h"] / 2
+    d["z_xpin_low"] = d["z_xh_bot_low"] + p["pin_rise"]
+    above = max(p["xh_h"] - p["pin_rise"], 12.0)  # crosshead (or its pin ears) above the pin
     r = p["crank_r"]
     th0 = math.radians(180 - p["crank_swing"])
 
@@ -76,7 +78,7 @@ def derive(p):
     L = p["link_len"]
     for _ in range(200):
         zp = d["z_xpin_low"] + r + L
-        bridge_top = high_pin(L, zp) + p["xh_h"] / 2 + p["bridge_gap"] + p["bridge_h"]
+        bridge_top = high_pin(L, zp) + above + p["bridge_gap"] + p["bridge_h"]
         if zp - r - p["pin_d"] - 2 >= bridge_top:
             break
         L += 1
@@ -84,7 +86,7 @@ def derive(p):
     d["z_pivot"] = d["z_xpin_low"] + r + L
     d["z_xpin_high"] = high_pin(L, d["z_pivot"])
     d["stroke"] = d["z_xpin_high"] - d["z_xpin_low"]
-    d["z_bridge_bot"] = d["z_xpin_high"] + p["xh_h"] / 2 + p["bridge_gap"]
+    d["z_bridge_bot"] = d["z_xpin_high"] + above + p["bridge_gap"]
     d["z_bridge_top"] = d["z_bridge_bot"] + p["bridge_h"]
     d["post_bottom"] = 0.0  # posts stand on the base and are bolted through it
     d["post_len"] = d["z_bridge_bot"] + p["bridge_h"] - 16 - 0.5  # 12 mm floor under the clamp bolt
@@ -177,7 +179,14 @@ def crosshead(p, d, dz=0.0):
     s = box(-L, L, -p["xh_depth"] / 2, p["xh_depth"] / 2, z0, z0 + p["xh_h"])
     for sx in (-1, 1):  # LM12UU pockets
         s = s.cut(cyl(p["bush_od"] / 2 + p["clearance"] / 2, p["xh_h"] + 2, (sx * p["post_spacing"] / 2, 0, z0 - 1), (0, 0, 1)))
-    s = hole_y(s, 0, z0 + p["xh_h"] / 2, p["pin_d"] + p["clearance"])
+    zpin = z0 + p["pin_rise"]
+    if p["pin_rise"] > p["xh_h"] - 8:
+        # pin ears on top of the crosshead (lifts the links clear of a front tool arm)
+        for sy in (-1, 1):
+            y0, y1 = (15.0, 25.0) if sy > 0 else (-25.0, -15.0)
+            ear = box(-16, 16, y0, y1, z0 + p["xh_h"] - 1, zpin).union(cyl(16, 10, (0, y0, zpin), (0, 1, 0)))
+            s = s.union(ear)
+    s = hole_y(s, 0, zpin, p["pin_d"] + p["clearance"])
     for bx in (-p["mount_bolt_x"], p["mount_bolt_x"]):
         for by in (-p["mount_bolt_y"], p["mount_bolt_y"]):
             s = s.cut(cyl(p["mount_bolt_d"] / 2, 100, (bx, by, z0 - 1), (0, 0, 1)))
@@ -309,10 +318,10 @@ def platen_head(p, d, dz=0.0):
     s = s.union(box(-mx, mx, -my, my, ztop - p["mount_t"], ztop))
     t = p["rib_t"] / 2
     # tapered ribs: full width at the face, mount width at the top
-    for y in (-60.0, -my + t, 0.0, my - t, 60.0):
+    for y in (-(D - 20), -my + t, 0.0, my - t, D - 20):
         rib = cq.Workplane("XZ").polyline([(-W, zr0), (W, zr0), (mx, zr1), (-mx, zr1)]).close().extrude(t, both=True)
         s = s.union(rib.translate((0, y, 0)))
-    for x in (-60.0, -mx + t, 0.0, mx - t, 60.0):
+    for x in (-(W - 20), -mx + t, 0.0, mx - t, W - 20):
         rib = cq.Workplane("YZ").polyline([(-D, zr0), (D, zr0), (my, zr1), (-my, zr1)]).close().extrude(t, both=True)
         s = s.union(rib.translate((x, 0, 0)))
     for bx in (-p["mount_bolt_x"], p["mount_bolt_x"]):

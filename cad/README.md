@@ -1,5 +1,37 @@
 # Two-stage can crusher: CAD
 
+There are two versions. Both share the same frame, lever and hardware.
+
+| Version | How the two steps happen | Files |
+|---|---|---|
+| **Two-station (progressive)**: recommended | The crease bar and the platen are both on the crosshead, one behind the other. Each stroke creases a fresh can at the front and flattens the previous one at the back; slide the can back between strokes. No tool change and no switching parts. Peak hand force about 120 N. | `progressive_crusher.py`, `out_progressive/` |
+| Single station | Bolt on the crease-bar head, press, swap to the platen head, press again. | `can_crusher.py`, `out/` |
+
+`docs/two-step-mechanism.md` explains why a head that creases and flattens in one stroke doesn't work: it needs about twice the force. It also covers what an auto-switching head would take.
+
+![Two-station press](out_progressive/preview.png)
+
+## Two-station version: what differs
+
+- **Crosshead:** has a front arm that carries the crease-bar head over station 1, 135 mm in front of the platen. The crosshead pin moves up onto two ears so the links clear that arm.
+- **Base and stations:** a longer base (280 × 330 mm) carries two printed stations:
+  - `cradle_station1` grooves the fresh can so it can't roll;
+  - `pad_station2` is flat, with a rear stop to push the creased can against.
+- **Platen:** 150 × 120 mm.
+- **Stop height:** both tools stop 12 mm above the bed, which gives about 3.3 kN of press force per stroke. Stopping at 8 mm would need about 6.9 kN.
+- **Interference check:** the whole stroke is clear. At the top of the stroke the platen is 90 mm above the bed, over the 56 mm creased can. The front arm stays 82 mm up at the bottom, above the folded halves.
+- **Bill of materials:** `out_progressive/bom_changes.csv` lists the differences from `out/bom.csv`.
+
+```bash
+python progressive_crusher.py                       # writes out_progressive/
+python progressive_crusher.py --set station_pitch=140 --set tool_low_gap=10
+python render_progressive.py                        # preview image
+```
+
+The steps below apply to both versions; they are written for the single-station one.
+
+## Single-station version
+
 ![Open and closed press](out/preview.png)
 
 A buildable crusher based on the simulator's results:

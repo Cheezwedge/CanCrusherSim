@@ -30,14 +30,19 @@ def draw(ax, parts, title, elev=18, azim=-55):
     ax.set_title(title, fontsize=11)
 
 
-p = dict(cc.PARAMS)
-_, opened = cc.build(p, 180 - p["crank_swing"])
-d, closed = cc.build(p, 180)
-closed.pop("can")
-fig = plt.figure(figsize=(13, 7))
-draw(fig.add_subplot(1, 2, 1, projection="3d"), opened, "Open: crease-bar head fitted, can in cradle")
-draw(fig.add_subplot(1, 2, 2, projection="3d"), closed, "Closed: bottom of stroke (tool 8 mm above cradle)")
-plt.tight_layout()
-out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "preview.png")
-plt.savefig(out, dpi=90)
-print(out)
+def main():
+    p = dict(cc.PARAMS)
+    _, opened = cc.build(p, 180 - p["crank_swing"])
+    d, closed = cc.build(p, 180)
+    closed.pop("can")
+    fig = plt.figure(figsize=(13, 7))
+    draw(fig.add_subplot(1, 2, 1, projection="3d"), opened, "Open: crease-bar head fitted, can in cradle")
+    draw(fig.add_subplot(1, 2, 2, projection="3d"), closed, "Closed: bottom of stroke (tool 8 mm above cradle)")
+    plt.tight_layout()
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "preview.png")
+    plt.savefig(out, dpi=90)
+    print(out)
+
+
+if __name__ == "__main__":
+    main()

@@ -166,11 +166,12 @@ export class CrushScenario {
         startTravel: 0, firstSample: 0, peak: { F: 0, d: 0 },
         springBack: null, pullForce: 0, snagged: false, overTop: 0, heightAfter: null, stopReason: '',
         motion: ps.motion || 'translate', rc: 0, phiEnd: 0,
+        ...(ps.combo ? this._makeCombo(ps, t, k === 0) : {}),
       };
     });
     this.stage = 0;
     this.tool = this.presses[0].tool;
-    this.presses[0].stroke = Math.max(0, this.presses[0].startY - this.presses[0].targetY);
+    this.presses[0].stroke = Math.max(0, (this.presses[0].extras ? this.presses[0].extras[0].py : this.presses[0].startY) - this.presses[0].targetY);
     // kept for compatibility with single-press callers
     this.toolStartY = this.tool.py;
     this.targetY = this.presses[0].targetY;
@@ -278,19 +279,36 @@ export class CrushScenario {
       const tool = this.tool;
       const pr = this.presses[this.stage];
       const hinge = pr.motion === 'hinge';
+      const combo = pr.combo;
+      let vp = 0;
       if (hinge) {
         tool.vy = 0;
         tool.omega = this.phase === 'crush' ? this.vCur / pr.rc : this.phase === 'release' ? -P.retractSpeed / pr.rc : 0;
+      } else if (combo) {
+        vp = this._toolVelocity();
+        for (const e of pr.extras) e.vy = vp;
+        tool.vy = vp + pr.cdot;
       } else tool.vy = this._toolVelocity();
       if (this.phase === 'dent-in' || this.phase === 'dent-out') { this._dentStep(); continue; }
       s.step();
       if (hinge) tool.phi -= tool.omega * s.dt;
       // force from the can pushing the crusher back (N); for a hinged platen the
       // resisting moment expressed as a force at the can's centre
-      const F = hinge ? tool.mres / pr.rc : tool.fy;
+      let F = hinge ? tool.mres / pr.rc : tool.fy;
+      if (combo) {
+        // spring-loaded bar: retraction c follows the bar force (quasi-static spring)
+        const cb = pr.combo, Fb = tool.fy;
+        pr.c = Math.min(cb.P, Math.max(0, pr.c + pr.cdot * s.dt));
+        const cStar = Fb > cb.F0 ? Math.min(cb.P, (Fb - cb.F0) / cb.k) : 0;
+        pr.cdot = Math.max(-0.5, Math.min(0.5, (cStar - pr.c) / 0.002));
+        if (pr.c >= cb.P && pr.cdot > 0) pr.cdot = 0;
+        if (pr.c <= 0 && pr.cdot < 0) pr.cdot = 0;
+        pr.springMax = Math.max(pr.springMax, Fb);
+        F = Fb + pr.extras[0].fy + pr.extras[1].fy;
+      }
       if (this.phase === 'crush') {
         this._govern(F);
-        const dd = hinge ? this.vCur * s.dt : -tool.vy * s.dt;
+        const dd = hinge ? this.vCur * s.dt : combo ? -vp * s.dt : -tool.vy * s.dt;
         this.travel += dd;
         this.pressTravel += dd;
         this.work += F * dd;
@@ -303,7 +321,7 @@ export class CrushScenario {
           this.history.d.push(this.travel);
           this.history.F.push(Fa);
           this.history.W.push(this.work);
-          this.history.h.push(hinge ? tool.py + pr.rc * Math.sin(tool.phi) : tool.py);
+          this.history.h.push(hinge ? tool.py + pr.rc * Math.sin(tool.phi) : combo ? pr.extras[0].py : tool.py);
           this.history.ke.push(s.kinetic);
           this.history.stage.push(this.stage);
           this.history.canH.push(this.currentHeight());
@@ -312,19 +330,20 @@ export class CrushScenario {
           if (Fa > pr.peak.F) { pr.peak.F = Fa; pr.peak.d = this.pressTravel; }
           if (Fa > P.maxForce) { pr.stopReason = 'force limit'; this.stopReason = 'force limit'; this._endCrush(); }
         }
-        if (hinge ? tool.phi <= 0 : tool.py <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
+        if (hinge ? tool.phi <= 0 : (combo ? pr.extras[0].py : tool.py) <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
         if (!Number.isFinite(s.x[0])) { this.stopReason = 'numerical failure'; this.done = true; return true; }
       } else if (this.phase === 'release') {
-        const risen = hinge ? (tool.phi - this.releaseStart) * pr.rc : tool.py - this.releaseStart;
+        const risen = hinge ? (tool.phi - this.releaseStart) * pr.rc : combo ? pr.extras[0].py - this.releaseStart : tool.py - this.releaseStart;
         // pull-out force: the can (held on the bed) dragging the crusher down
         this._pullAcc = this._pullAcc * 0.9 + Math.max(0, -F) * 0.1;
         if (this._pullAcc > pr.pullForce) pr.pullForce = this._pullAcc;
-        if (tool.contactCount === 0) {
+        const inContact = tool.contactCount + (combo ? pr.extras[0].contactCount + pr.extras[1].contactCount : 0);
+        if (inContact === 0) {
           if (pr.springBack === null) pr.springBack = risen;
           this._freeSteps++;
         } else this._freeSteps = 0;
         if ((this._freeSteps > 40 && risen > 0.001) || risen > P.retractMax) {
-          pr.snagged = tool.contactCount > 0;
+          pr.snagged = inContact > 0;
           if (pr.springBack === null) pr.springBack = risen;
           this._afterRelease();
           if (this.done) break;
@@ -376,7 +395,7 @@ export class CrushScenario {
       return;
     }
     this.phase = 'release';
-    this.releaseStart = pr.motion === 'hinge' ? this.tool.phi : this.tool.py;
+    this.releaseStart = pr.motion === 'hinge' ? this.tool.phi : pr.combo ? pr.extras[0].py : this.tool.py;
     this._pullAcc = 0;
     this._freeSteps = 0;
     pr.overTop = this._countOverTop(this.tool);
@@ -423,6 +442,29 @@ export class CrushScenario {
     pr.stroke = pr.rc * t.phi;
   }
 
+  /**
+   * Combined head: the crease bar (primary tool) sticks out `protrusion` below a
+   * platen split by a slot, held there by a preloaded spring. The bar creases
+   * first; once its force exceeds the preload it retracts into the slot while
+   * the platen carries on down and flattens: crease-then-flatten in one stroke.
+   */
+  _makeCombo(ps, bar, active) {
+    const cb = ps.combo, P = this.params;
+    const W = cb.platenW ?? 0.16, Lz = cb.platenL ?? 0.16, slot = cb.slot ?? 0.024;
+    const half = (Lz - slot) / 2;
+    const extras = [-1, 1].map((sz) => {
+      const t = this.solver.addTool(makeTool({ type: 'plate', width: W, length: half, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0, friction: P.friction }));
+      t.px = 0; t.pz = sz * (slot / 2 + half / 2);
+      t.enabled = active;
+      t.py = active ? bar.py + cb.protrusion : 1;
+      return t;
+    });
+    return {
+      extras, combo: { P: cb.protrusion, F0: cb.preload, k: (cb.fullForce - cb.preload) / cb.protrusion },
+      c: 0, cdot: 0, springMax: 0,
+    };
+  }
+
   /** Nodes of the can lying on top of the crusher (metal folded over it). */
   _countOverTop(tool) {
     if (typeof tool.isOverTop !== 'function') return 0;
@@ -440,6 +482,7 @@ export class CrushScenario {
     this.springBack = pr.springBack;
     this.tool.vy = 0;
     if (this.stage + 1 < this.presses.length) {
+      if (pr.extras) for (const e of pr.extras) { e.enabled = false; e.py = 1; }
       this.tool.enabled = false;
       this.tool.py = 1;
       this.stage++;
@@ -508,6 +551,7 @@ export class CrushScenario {
         work: pr.work, travel: pr.travel, meanForce: pr.travel > 0 ? pr.work / pr.travel : 0,
         springBack: pr.springBack ?? 0, pullForce: pr.pullForce, snagged: pr.snagged, overTop: pr.overTop,
         heightAfter: pr.heightAfter, stopReason: pr.stopReason,
+        springMax: pr.springMax ?? null,
       };
     });
     return {
