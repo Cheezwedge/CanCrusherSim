@@ -127,14 +127,24 @@ export class PlateTool extends ToolBase {
     this.r = Math.min(opts.edgeRadius ?? 0.002, this.hx * 0.999, this.hz * 0.999, this.hy * 0.999);
     this.ramR = Math.max(0, (opts.ramDiameter ?? 0.018) / 2);
     this.ramBase = 2 * this.hy;
+    // optional slot across the middle (along local x): the plate becomes two
+    // side pieces separated by `slot` in local z
+    this.slot = opts.slot ?? 0;
+    if (this.slot > 0) {
+      this.hzp = (2 * this.hz - this.slot) / 4;
+      this.zc = this.slot / 2 + this.hzp;
+      this.r = Math.min(this.r, this.hzp * 0.999);
+    }
   }
   sdf(x, y, z, n) {
     this._local(x, y, z, _l);
-    const lx = _l[0], ly = _l[1] - this.hy, lz = _l[2];
+    const lx = _l[0], ly = _l[1] - this.hy;
+    const sl = this.slot > 0;
+    const lz = sl ? Math.abs(_l[2]) - this.zc : _l[2];
     const r = this.r;
     const qx = Math.abs(lx) - (this.hx - r);
     const qy = Math.abs(ly) - (this.hy - r);
-    const qz = Math.abs(lz) - (this.hz - r);
+    const qz = Math.abs(lz) - ((sl ? this.hzp : this.hz) - r);
     const mx = qx > 0 ? qx : 0, my = qy > 0 ? qy : 0, mz = qz > 0 ? qz : 0;
     const len = Math.sqrt(mx * mx + my * my + mz * mz);
     let d;
@@ -149,7 +159,8 @@ export class PlateTool extends ToolBase {
       else if (qy >= qz) { d = qy - r; n[1] = ly < 0 ? -1 : 1; }
       else { d = qz - r; n[2] = lz < 0 ? -1 : 1; }
     }
-    d = this._ram(lx, _l[1], lz, d, n);
+    if (sl && _l[2] < 0) n[2] = -n[2];
+    d = this._ram(lx, _l[1], _l[2], d, n);
     this._toWorldN(n);
     return d;
   }
@@ -159,7 +170,7 @@ export class PlateTool extends ToolBase {
     return _l[1] > 2 * this.hy && _l[1] < 2 * this.hy + 0.03 && Math.abs(_l[0]) < this.hx && Math.abs(_l[2]) < this.hz;
   }
   describe() {
-    return { kind: 'plate', width: this.hx * 2, length: this.hz * 2, thickness: this.hy * 2, edgeRadius: this.r, yaw: this.yaw, ramDiameter: this.ramR * 2 };
+    return { kind: 'plate', width: this.hx * 2, length: this.hz * 2, thickness: this.hy * 2, edgeRadius: this.r, yaw: this.yaw, ramDiameter: this.ramR * 2, slot: this.slot };
   }
 }
 

@@ -54,3 +54,23 @@ The crease bar adds only about 100–140 N. The two-station press therefore stop
 **At the handle.** With the same lever and crank as the single-station press, the hand force peaks at about **120 N** at mid-stroke. Near the bottom, the toggle action of the straightening links absorbs the 3.3 kN flattening peak.
 
 The CAD is in `cad/progressive_crusher.py`, with outputs in `cad/out_progressive/` (see [cad/README.md](../cad/README.md)).
+
+## 4. Bar on push 1, two side plates with a gap on push 2
+
+**Idea.** The bar creases on the first push. On the second push two side plates come down, with a gap in the middle where the bar went, and the bar does not press. This avoids the trap in section 1, where the bar stayed pressed in the crease. Reproduce with `node tools/study-platen-shapes.mjs standard only=flat,slot24,slot40`.
+
+| Push-2 tool, after the Ø20 bar crease | Force to 25 / 20 / 15 / 12 mm thick | Thinnest under load |
+|---|---|---|
+| Solid flat platen | 965 / 1,301 / 2,367 / 3,134 N | 7.0 mm |
+| Two side plates, 24 mm gap | 949 / 1,298 / 2,544 N / can't reach | 13.7 mm |
+| Two side plates, 40 mm gap | can't reach 25 mm | 25.9 mm |
+
+**What it shows:**
+- **Down to 20 mm the gap costs nothing.** Force is the same as the solid platen.
+- **Below that, the gap sets a floor.** The creased middle has nothing pressing on it, so it pushes up into the gap: about 14 mm thick with a 24 mm gap, 26 mm with a 40 mm gap.
+
+**How to keep the idea and get a thin can:** on push 2, the side plates come down level with the bar, so the bar fills the gap and the face acts as one solid flat platen.
+- Push 1: the side plates are held about 50 mm up while the bar creases. They must stay above the folded halves, which reach about 55 mm.
+- Push 2: the side plates are locked level with the bar.
+
+The press still bottoms out at the same height every push. So the plates need a lock that holds the full ~3 kN flattening force on push 2, and a toggle that flips it at the top of each stroke. That makes this the "sliding tools with a lock" option from section 2.

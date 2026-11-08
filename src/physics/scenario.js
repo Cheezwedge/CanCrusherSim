@@ -150,7 +150,7 @@ export class CrushScenario {
       const shape = sp.shape || 'flat';
       let tl;
       if (shape === 'hinge') tl = { type: 'hinge', width: sz, length: sz + 0.04, thickness: 0.02 };
-      else if (shape === 'flat') tl = { type: 'plate', width: sz, length: sz, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0.018 };
+      else if (shape === 'flat') tl = { type: 'plate', width: sz, length: sz, thickness: 0.02, edgeRadius: 0.003, ramDiameter: sp.slot ? 0 : 0.018, slot: sp.slot || 0 };
       else tl = { type: 'profile', width: sz, length: sz, thickness: 0.02, profile: shape, radius: sp.radius ?? 0.4, angleDeg: sp.angleDeg ?? 6 };
       specs.push({ tool: tl, finalGap: sp.finalGap ?? 0.006, label: 'platen', motion: shape === 'hinge' ? 'hinge' : 'translate' });
     }

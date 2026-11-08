@@ -18,6 +18,8 @@ export const PLATENS = [
   { key: 'valley5', name: 'Valley / V pointing up (5°)', sp: { shape: 'valley', angleDeg: 5 } },
   { key: 'tilt8', name: 'Flat, tilted 8° (one end first)', sp: { shape: 'tilt', angleDeg: 8 } },
   { key: 'hinge', name: 'Hinged clamshell (pivot past one end)', sp: { shape: 'hinge' } },
+  { key: 'slot24', name: 'Two side plates, 24 mm gap where the bar went', sp: { shape: 'flat', slot: 0.024 } },
+  { key: 'slot40', name: 'Two side plates, 40 mm gap where the bar went', sp: { shape: 'flat', slot: 0.04 } },
 ];
 const HEIGHTS = [25, 20, 15, 12];
 
