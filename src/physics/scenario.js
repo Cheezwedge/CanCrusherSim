@@ -167,11 +167,13 @@ export class CrushScenario {
         springBack: null, pullForce: 0, snagged: false, overTop: 0, heightAfter: null, stopReason: '',
         motion: ps.motion || 'translate', rc: 0, phiEnd: 0,
         ...(ps.combo ? this._makeCombo(ps, t, k === 0) : {}),
+        ...(ps.kin ? this._makeKin(ps, t) : {}),
       };
     });
     this.stage = 0;
     this.tool = this.presses[0].tool;
-    this.presses[0].stroke = Math.max(0, (this.presses[0].extras ? this.presses[0].extras[0].py : this.presses[0].startY) - this.presses[0].targetY);
+    if (this.presses[0].kin) this.presses[0].stroke = this.presses[0].kin.sEnd;
+    else this.presses[0].stroke = Math.max(0, (this.presses[0].extras ? this.presses[0].extras[0].py : this.presses[0].startY) - this.presses[0].targetY);
     // kept for compatibility with single-press callers
     this.toolStartY = this.tool.py;
     this.targetY = this.presses[0].targetY;
@@ -284,6 +286,10 @@ export class CrushScenario {
       if (hinge) {
         tool.vy = 0;
         tool.omega = this.phase === 'crush' ? this.vCur / pr.rc : this.phase === 'release' ? -P.retractSpeed / pr.rc : 0;
+      } else if (pr.kin) {
+        const tgt = this._kinAt(pr.kin, this.pressTravel + this.vCur * s.dt);
+        tool.vy = (tgt[0] - tool.py) / s.dt;
+        for (const e of pr.extras) e.vy = (tgt[1] - e.py) / s.dt;
       } else if (combo) {
         vp = this._toolVelocity();
         for (const e of pr.extras) e.vy = vp;
@@ -306,9 +312,14 @@ export class CrushScenario {
         pr.springMax = Math.max(pr.springMax, Fb);
         F = Fb + pr.extras[0].fy + pr.extras[1].fy;
       }
+      if (pr.kin) {
+        const fp = pr.extras[0].fy + pr.extras[1].fy;
+        pr._fb = tool.fy; pr._fp = fp;
+        F = -(tool.fy * tool.vy + fp * pr.extras[0].vy) / Math.max(this.vCur, 1e-9);
+      }
       if (this.phase === 'crush') {
-        this._govern(F);
-        const dd = hinge ? this.vCur * s.dt : combo ? -vp * s.dt : -tool.vy * s.dt;
+        this._govern(Math.abs(F));
+        const dd = hinge || pr.kin ? this.vCur * s.dt : combo ? -vp * s.dt : -tool.vy * s.dt;
         this.travel += dd;
         this.pressTravel += dd;
         this.work += F * dd;
@@ -321,16 +332,21 @@ export class CrushScenario {
           this.history.d.push(this.travel);
           this.history.F.push(Fa);
           this.history.W.push(this.work);
-          this.history.h.push(hinge ? tool.py + pr.rc * Math.sin(tool.phi) : combo ? pr.extras[0].py : tool.py);
+          this.history.h.push(hinge ? tool.py + pr.rc * Math.sin(tool.phi) : (combo || pr.kin) ? pr.extras[0].py : tool.py);
           this.history.ke.push(s.kinetic);
           this.history.stage.push(this.stage);
           this.history.canH.push(this.currentHeight());
+          if (pr.kin) {
+            const hh = this.history;
+            if (!hh.yb) { hh.yb = []; hh.Fb = []; hh.Fp = []; hh.s = []; }
+            hh.yb.push(tool.py); hh.Fb.push(pr._fb); hh.Fp.push(pr._fp); hh.s.push(this.pressTravel);
+          }
           this._nextSample += this.sampleEvery;
           if (Fa > this.peak.F) { this.peak.F = Fa; this.peak.d = this.travel; }
           if (Fa > pr.peak.F) { pr.peak.F = Fa; pr.peak.d = this.pressTravel; }
           if (Fa > P.maxForce) { pr.stopReason = 'force limit'; this.stopReason = 'force limit'; this._endCrush(); }
         }
-        if (hinge ? tool.phi <= 0 : (combo ? pr.extras[0].py : tool.py) <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
+        if (pr.kin ? this.pressTravel >= pr.kin.sEnd : hinge ? tool.phi <= 0 : (combo ? pr.extras[0].py : tool.py) <= pr.targetY) { pr.stopReason = pr.stopReason || 'stroke complete'; this.stopReason = this.stopReason || 'stroke complete'; this._endCrush(); }
         if (!Number.isFinite(s.x[0])) { this.stopReason = 'numerical failure'; this.done = true; return true; }
       } else if (this.phase === 'release') {
         const risen = hinge ? (tool.phi - this.releaseStart) * pr.rc : combo ? pr.extras[0].py - this.releaseStart : tool.py - this.releaseStart;
@@ -389,6 +405,7 @@ export class CrushScenario {
   _endCrush() {
     if (this.phase !== 'crush') return;
     const pr = this.presses[this.stage];
+    if (pr.kin) { pr.heightAfter = this.currentHeight(); this.phase = 'finished'; this.done = true; return; }
     if (!this.params.release && this.stage === this.presses.length - 1) {
       this.phase = 'finished';
       this.done = true;
@@ -463,6 +480,36 @@ export class CrushScenario {
       extras, combo: { P: cb.protrusion, F0: cb.preload, k: (cb.fullForce - cb.preload) / cb.protrusion },
       c: 0, cdot: 0, springMax: 0,
     };
+  }
+
+  /**
+   * Kinematically driven double-action head: the crease bar (primary tool) and
+   * a slotted platen follow prescribed positions given as a table over a drive
+   * coordinate s (e.g. crank angle x a reference radius), so both tools are
+   * moved by one input, like two cranks at different phases on one shaft.
+   * table rows: [s, barTipY, platenFaceY] (m), s increasing from 0.
+   * The reported force is the generalised force on s (power / ds/dt).
+   */
+  _makeKin(ps, bar) {
+    const kn = ps.kin, P = this.params;
+    const W = kn.platenW ?? 0.16, Lz = kn.platenL ?? 0.16, slot = kn.slot ?? 0.022;
+    const half = (Lz - slot) / 2;
+    const extras = [-1, 1].map((sz) => {
+      const t = this.solver.addTool(makeTool({ type: 'plate', width: W, length: half, thickness: 0.02, edgeRadius: 0.003, ramDiameter: 0, friction: P.friction }));
+      t.px = 0; t.pz = sz * (slot / 2 + half / 2);
+      t.py = kn.table[0][2];
+      return t;
+    });
+    bar.py = kn.table[0][1];
+    return { extras, kin: { table: kn.table, i: 0, sEnd: kn.table[kn.table.length - 1][0] }, motion: 'kin' };
+  }
+
+  _kinAt(kin, sv) {
+    const T = kin.table;
+    while (kin.i < T.length - 2 && T[kin.i + 1][0] < sv) kin.i++;
+    const a = T[kin.i], b = T[kin.i + 1];
+    const u = Math.min(1, Math.max(0, (sv - a[0]) / (b[0] - a[0])));
+    return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
   }
 
   /** Nodes of the can lying on top of the crusher (metal folded over it). */

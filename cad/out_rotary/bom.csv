@@ -1,0 +1,23 @@
+item,qty,notes
+M8 threaded rod (tie rods),4,"205 mm long, with 8 nuts + 8 washers"
+Aluminium or steel tube Ø12 × 1.5 (guide tubes / spacers),4,"147 mm long, slides over the M8 rods"
+M16 × 130 hex bolt + nyloc nut + 2 washers (rotor axle),1,head sits in the bottom plate; leave the nut just loose
+M6 × 110 bolt + nut (rotor through-bolts),3,"handle hub, upper rotor and lower rotor"
+M8 × 110 bolt + nut (back posts),2,"top plate, post, bottom plate"
+Ø10 × 26 mm steel dowel or cut bolt shank (wrist pin),1,dropped in through the hole in the platen top
+Steel tube Ø20 (handle),1,"426 mm long, 2 × M6 × 45 cross bolts + nuts"
+M8 × 100 bolt + nyloc nut (grip knob spindle),1,through the handle tube end
+Rubber bands or 2 light extension springs (~10 N),2,"blade return, peg to peg"
+Plywood board 18 mm,1,"about 394 × 200 mm; wood screws 5 × 30, 10 off"
+Grease (lithium or PTFE),1,"eccentric strap, cam face, guide tubes, axle"
+Printed: fixed_jaw (stl/fixed_jaw.stl),1,"93 × 176 × 63 mm, 491 cm3 solid"
+Printed: platen (stl/platen.stl),1,"92 × 176 × 46 mm, 560 cm3 solid"
+Printed: blade (stl/blade.stl),1,"69 × 92 × 110 mm, 83 cm3 solid"
+Printed: conrod (stl/conrod.stl),1,"201 × 132 × 12 mm, 82 cm3 solid"
+Printed: rotor_lower (stl/rotor_lower.stl),1,"114 × 114 × 29 mm, 175 cm3 solid"
+Printed: rotor_upper (stl/rotor_upper.stl),1,"114 × 108 × 41 mm, 141 cm3 solid"
+Printed: bottom_plate (stl/bottom_plate.stl),1,"181 × 176 × 22 mm, 669 cm3 solid"
+Printed: top_plate (stl/top_plate.stl),1,"181 × 176 × 23 mm, 476 cm3 solid"
+Printed: back_post (stl/back_post.stl),2,"24 × 24 × 52 mm, 21 cm3 solid"
+Printed: handle_hub (stl/handle_hub.stl),1,"105 × 120 × 30 mm, 93 cm3 solid"
+Printed: knob (stl/knob.stl),1,"36 × 36 × 70 mm, 48 cm3 solid"

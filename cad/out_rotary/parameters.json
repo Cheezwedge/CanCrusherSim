@@ -1,0 +1,149 @@
+{
+ "params": {
+  "can_d": 66.2,
+  "can_len": 122.7,
+  "rb": 40.0,
+  "rp": 40.0,
+  "Lp": 122.0,
+  "phi": 120.0,
+  "bar_gap": 8.0,
+  "platen_gap": 12.0,
+  "half_w": 88.0,
+  "tube_y": 78.0,
+  "tube_z_lo": 11.0,
+  "tube_z_hi": 82.0,
+  "tube_d": 12.0,
+  "tie_d": 8.0,
+  "jaw_t": 30.0,
+  "frame_h": 93.0,
+  "bot_t": 22.0,
+  "top_z0": 74.0,
+  "top_t": 16.0,
+  "band_anchor": 50.0,
+  "plate_back": 110.0,
+  "axle_d": 16.0,
+  "platen_depth": 46.0,
+  "slot_w": 22.0,
+  "floor_clear": 1.5,
+  "slot_top": 68.8,
+  "web_x0": 21.0,
+  "web_x1": 41.0,
+  "wrist_d": 10.0,
+  "blade_t": 19.4,
+  "nose_solid": 19.5,
+  "strip_len": 56.0,
+  "foot_w": 92.0,
+  "foot_t": 16.0,
+  "foot_pocket": 30.0,
+  "foot_z0": 52.0,
+  "foot_z1": 64.0,
+  "ecc_wall": 14.0,
+  "hub_r": 20.0,
+  "rod_t": 12.0,
+  "strap_wall": 12.0,
+  "rod_w": 22.0,
+  "pe_z0": 26.0,
+  "pe_z1": 44.5,
+  "cam_z0": 51.5,
+  "cam_z1": 64.5,
+  "handle_len": 450.0,
+  "handle_d": 20.0,
+  "clearance": 0.3
+ },
+ "derived": {
+  "wrist_depth": 31.0,
+  "S": 212.0,
+  "Rpe": 54.0,
+  "Rcam": 54.0,
+  "Lbt": 110.0,
+  "zc": 35.25,
+  "rod_z0": 29.25,
+  "rod_z1": 41.25,
+  "Lp": 129.0,
+  "max_protrusion": 75.08,
+  "protrusion_room": 78.0,
+  "face_max": 92.0,
+  "plate_front": 71.0,
+  "tube_len": 141.0,
+  "load_angle": 232.5,
+  "handle_phase": -412.5
+ },
+ "load_window_deg": [
+  225,
+  240
+ ],
+ "load_angle_deg": 232.5,
+ "print_sizes_mm_cm3": {
+  "fixed_jaw": [
+   93,
+   176,
+   63,
+   491
+  ],
+  "platen": [
+   92,
+   176,
+   46,
+   560
+  ],
+  "blade": [
+   69,
+   92,
+   110,
+   83
+  ],
+  "conrod": [
+   201,
+   132,
+   12,
+   82
+  ],
+  "rotor_lower": [
+   114,
+   114,
+   29,
+   175
+  ],
+  "rotor_upper": [
+   114,
+   108,
+   41,
+   141
+  ],
+  "bottom_plate": [
+   181,
+   176,
+   22,
+   669
+  ],
+  "top_plate": [
+   181,
+   176,
+   23,
+   476
+  ],
+  "back_post": [
+   24,
+   24,
+   52,
+   21
+  ],
+  "handle_hub": [
+   105,
+   120,
+   30,
+   93
+  ],
+  "knob": [
+   36,
+   36,
+   70,
+   48
+  ]
+ },
+ "envelope_mm": {
+  "length": 374,
+  "width": 176,
+  "height_without_handle": 122
+ }
+}

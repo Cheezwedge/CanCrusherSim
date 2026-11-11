@@ -1,0 +1,146 @@
+[
+ {
+  "key": "flat-1",
+  "name": "One stroke: plain flat platen",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": 4494,
+   "15": 3595,
+   "20": 2441,
+   "25": 2156
+  },
+  "stages": [
+   {
+    "label": "crusher",
+    "peak": 8495,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 119.1,
+  "final": 9.1
+ },
+ {
+  "key": "rib10-1",
+  "name": "One stroke: flat platen with fixed 10 mm rib",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": null,
+   "15": 3900,
+   "20": 2376,
+   "25": 2272
+  },
+  "stages": [
+   {
+    "label": "rib platen",
+    "peak": 8089,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 108.1,
+  "final": 12.2
+ },
+ {
+  "key": "rib20-1",
+  "name": "One stroke: flat platen with fixed 20 mm rib",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": null,
+   "15": null,
+   "20": null,
+   "25": 2711
+  },
+  "stages": [
+   {
+    "label": "rib platen",
+    "peak": 7889,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 78.4,
+  "final": 21.3
+ },
+ {
+  "key": "rib10-2",
+  "name": "Two strokes: 10 mm rib platen to 22 mm, then flat",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": 4757,
+   "15": 3163,
+   "20": 2272,
+   "25": 2272
+  },
+  "stages": [
+   {
+    "label": "rib platen",
+    "peak": 2272,
+    "pull": 0,
+    "snagged": false
+   },
+   {
+    "label": "platen",
+    "peak": 8603,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 114.4,
+  "final": 9.8
+ },
+ {
+  "key": "rib20-2",
+  "name": "Two strokes: 20 mm rib platen to 28 mm, then flat",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": 4107,
+   "15": 3094,
+   "20": 2379,
+   "25": 2190
+  },
+  "stages": [
+   {
+    "label": "rib platen",
+    "peak": 2190,
+    "pull": 0,
+    "snagged": false
+   },
+   {
+    "label": "platen",
+    "peak": 8489,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 116.5,
+  "final": 8.9
+ },
+ {
+  "key": "bar-2",
+  "name": "Two strokes: bare Ø20 bar to 8 mm, then flat (reference)",
+  "res": "standard",
+  "peakForceToThickness": {
+   "12": 3134,
+   "15": 2367,
+   "20": 1301,
+   "25": 965
+  },
+  "stages": [
+   {
+    "label": "crusher",
+    "peak": 172,
+    "pull": 0,
+    "snagged": false
+   },
+   {
+    "label": "platen",
+    "peak": 8492,
+    "pull": 0,
+    "snagged": false
+   }
+  ],
+  "work": 77.3,
+  "final": 7.3
+ }
+]

@@ -1,6 +1,8 @@
 # Two-stage can crusher: CAD
 
-There are two versions. Both share the same frame, lever and hardware.
+**Newest: the low-profile rotary crusher.** One turn of a flat crank creases and then flattens the can, in a unit 93 mm tall. See [ROTARY.md](ROTARY.md).
+
+The two earlier lever-press versions are below. Both share the same frame, lever and hardware.
 
 | Version | How the two steps happen | Files |
 |---|---|---|

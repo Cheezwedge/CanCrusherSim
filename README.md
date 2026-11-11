@@ -97,6 +97,8 @@ Included:
 
 About 150 N at the handle flattens a can to 12–15 mm. Edit the dimensions in `cad/can_crusher.py` and rerun it to regenerate everything.
 
+**Low-profile rotary version:** [`cad/ROTARY.md`](cad/ROTARY.md) describes a flat, one-turn crusher. A cam pushes a crease blade out through the platen, then a second eccentric closes the platen. The simulator can drive both tools from one crank (`tools/study-rotary.mjs`), which is how its timing was chosen.
+
 ## The physics model
 
 The model is a 3D explicit-dynamics finite-element shell solver written in plain JavaScript (`src/physics`). It runs in a Web Worker so the page stays responsive.
